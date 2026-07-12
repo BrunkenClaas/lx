@@ -1,0 +1,1 @@
+sync /var/www to web@server:/var/www and delete files not present in source

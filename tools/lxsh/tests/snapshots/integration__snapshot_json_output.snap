@@ -1,0 +1,10 @@
+---
+source: tools/lxsh/tests/integration.rs
+assertion_line: 61
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "ls -lat",
+  "shell": "bash",
+  "dangerous": false
+}

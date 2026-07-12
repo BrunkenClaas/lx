@@ -1,0 +1,13 @@
+[package]
+name = "lx-redact"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Secret/PII redaction for LX Coreutils — runs before any LLM call on flagged tools"
+
+[dependencies]
+lx-core   = { workspace = true }
+# regex: MIT/Apache, pattern engine for the security-critical redaction logic.
+# once_cell: MIT/Apache, used to lazily compile regex patterns exactly once.
+regex     = { workspace = true }
+once_cell = { workspace = true }

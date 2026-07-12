@@ -1,0 +1,10 @@
+---
+source: tools/lxport/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "port": 22,
+  "likely_service": "SSH",
+  "explanation": "Port 22 is the standard SSH port used for remote login. It is a frequent target for brute-force attacks.",
+  "risk": "medium"
+}

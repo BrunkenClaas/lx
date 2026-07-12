@@ -1,0 +1,8 @@
+---
+source: tools/lxundo/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "undo_command": "git checkout HEAD -- file.txt",
+  "caution": "Restores the file from HEAD"
+}

@@ -1,0 +1,11 @@
+*   Trying 93.184.216.34:443...
+* Connected to api.example.com (93.184.216.34) port 443 (#0)
+> GET /api/users HTTP/2
+> Host: api.example.com
+> Authorization: Bearer INVALID_TOKEN
+>
+< HTTP/2 401
+< content-type: application/json
+< www-authenticate: Bearer realm="api"
+<
+{"error":"invalid_token","message":"Token is expired or invalid"}

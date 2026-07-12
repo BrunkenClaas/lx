@@ -1,0 +1,13 @@
+---
+source: tools/lxjwt/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "header": "Signed with HMAC-SHA256 algorithm, standard JWT type.",
+  "payload": "Issued by example-service for subject user-42 with a viewer role; valid for one hour.",
+  "notes": [
+    "Token has a 1-hour lifetime (iat to exp)",
+    "role claim grants viewer-level access",
+    "No audience (aud) claim is set"
+  ]
+}

@@ -1,0 +1,8 @@
+---
+source: tools/lxask/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "answer": "Paris is the capital of France.",
+  "sources": []
+}

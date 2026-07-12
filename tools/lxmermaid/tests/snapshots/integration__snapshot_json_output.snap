@@ -1,0 +1,7 @@
+---
+source: tools/lxmermaid/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "diagram": "flowchart TD\n    A[Start] --> B[End]"
+}

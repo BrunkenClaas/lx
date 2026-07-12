@@ -1,0 +1,8 @@
+---
+source: tools/lxlog/tests/integration.rs
+expression: out.to_plain()
+---
+[ERROR] line 14: Cache server connection refused, falling back to uncached mode
+[FATAL] line 25: Worker thread terminated due to unhandled NullPointerException
+
+Two critical issues detected: cache server down causing performance degradation, and a fatal worker thread crash.

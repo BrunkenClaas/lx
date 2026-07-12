@@ -1,0 +1,5 @@
+---
+source: tools/lxsecret/tests/integration.rs
+expression: out.to_plain()
+---
+aws_access_key	stdin:1	AKIA****PQRF

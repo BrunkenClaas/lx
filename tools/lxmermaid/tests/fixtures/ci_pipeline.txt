@@ -1,0 +1,1 @@
+CI/CD pipeline: code push triggers checkout, then parallel lint and unit tests, if both pass run integration tests, if pass build Docker image and push to registry, then deploy to staging, run smoke tests, and if successful deploy to production

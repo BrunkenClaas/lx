@@ -1,0 +1,14 @@
+Input: Failed command: git psh origin main
+Output: {"command":"git push origin main","reason":"'psh' is a typo for 'push'"}
+
+Input: Failed command: docker run -it ubunut bash
+
+Error output:
+Unable to find image 'ubunut:latest'
+Output: {"command":"docker run -it ubuntu bash","reason":"'ubunut' is a typo for 'ubuntu'"}
+
+Input: Failed command: ls -la --color=always /nonexistent
+
+Error output:
+ls: cannot access '/nonexistent': No such file or directory
+Output: {"command":"ls -la --color=always .","reason":"the directory '/nonexistent' does not exist; using '.' instead"}

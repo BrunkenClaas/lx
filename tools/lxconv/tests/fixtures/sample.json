@@ -1,0 +1,5 @@
+[
+  {"city": "Berlin", "population": 3700000, "country": "Germany"},
+  {"city": "Paris", "population": 2100000, "country": "France"},
+  {"city": "Amsterdam", "population": 900000, "country": "Netherlands"}
+]

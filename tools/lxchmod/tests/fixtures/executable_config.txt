@@ -1,0 +1,1 @@
+-rwxrwxrwx 1 user group 512 Feb 15 09:30 config.json

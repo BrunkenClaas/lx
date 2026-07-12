@@ -1,0 +1,11 @@
+---
+source: tools/lxcert/tests/integration.rs
+expression: out.to_plain()
+---
+Subject:     CN=localhost, O=Test Corp, C=US
+Issuer:      CN=localhost, O=Test Corp, C=US
+Valid until: 2025-01-01
+Notes:
+  • Self-signed certificate
+  • Suitable for local development only
+  • No Subject Alternative Names defined

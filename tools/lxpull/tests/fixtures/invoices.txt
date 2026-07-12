@@ -1,0 +1,16 @@
+Quarterly Invoice Summary
+
+Invoice #INV-2024-001
+Date: 2024-01-15
+Amount: $500.00
+Description: Consulting services for Q4 2023
+
+Invoice #INV-2024-002
+Date: 2024-02-01
+Amount: $1200.00
+Description: Software development — API integration
+
+Invoice #INV-2024-003
+Date: 2024-03-10
+Amount: $750.00
+Description: Technical documentation and review

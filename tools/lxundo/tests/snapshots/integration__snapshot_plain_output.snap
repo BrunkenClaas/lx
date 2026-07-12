@@ -1,0 +1,5 @@
+---
+source: tools/lxundo/tests/integration.rs
+expression: out.undo_command.clone()
+---
+git checkout HEAD -- file.txt

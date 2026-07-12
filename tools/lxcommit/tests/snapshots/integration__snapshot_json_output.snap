@@ -1,0 +1,11 @@
+---
+source: tools/lxcommit/tests/integration.rs
+assertion_line: 55
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "type": "feat",
+  "scope": "auth",
+  "subject": "add token refresh method",
+  "body": "Allows callers to exchange a refresh token for a new access token."
+}

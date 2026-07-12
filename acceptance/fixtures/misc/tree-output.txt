@@ -1,0 +1,19 @@
+my-app/
+├── Cargo.toml
+├── README.md
+├── src/
+│   ├── main.rs
+│   ├── lib.rs
+│   ├── config.rs
+│   ├── models/
+│   │   ├── mod.rs
+│   │   ├── user.rs
+│   │   └── order.rs
+│   └── handlers/
+│       ├── mod.rs
+│       ├── auth.rs
+│       └── api.rs
+└── tests/
+    ├── integration.rs
+    └── fixtures/
+        └── sample.json

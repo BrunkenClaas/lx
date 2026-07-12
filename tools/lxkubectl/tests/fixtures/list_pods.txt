@@ -1,0 +1,1 @@
+list all pods in the production namespace with wide output

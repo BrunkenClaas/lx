@@ -1,0 +1,4 @@
+Alice is 30 years old and works as an Engineer in New York.
+Bob is 25 and is a Designer based in San Francisco.
+Carol, age 28, works as a Manager in London.
+Dave is 35 and serves as a Director in Berlin.

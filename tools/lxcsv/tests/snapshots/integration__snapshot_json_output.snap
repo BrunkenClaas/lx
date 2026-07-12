@@ -1,0 +1,8 @@
+---
+source: tools/lxcsv/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "answer": "Widget E has the highest revenue at 9300.",
+  "used_rows": "10 of 10 rows sampled"
+}

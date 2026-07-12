@@ -1,0 +1,1 @@
+User login flow: user enters username and password, the app validates credentials against the database, on success shows dashboard, on failure shows error message and allows retry

@@ -1,0 +1,6 @@
+---
+source: tools/lxsh/tests/integration.rs
+assertion_line: 53
+expression: out.to_plain()
+---
+ls -lat

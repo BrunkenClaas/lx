@@ -1,0 +1,24 @@
+Input: Target shell: powershell
+
+list all files including hidden ones sorted by modification time
+Output: {"command":"Get-ChildItem -Force | Sort-Object LastWriteTime","shell":"powershell","dangerous":false}
+
+Input: Target shell: powershell
+
+remove the file foo.txt
+Output: {"command":"Remove-Item foo.txt","shell":"powershell","dangerous":false}
+
+Input: Target shell: powershell
+
+compress the src directory into src.zip
+Output: {"command":"Compress-Archive -Path src -DestinationPath src.zip","shell":"powershell","dangerous":false}
+
+Input: Target shell: powershell
+
+list all running processes sorted by CPU
+Output: {"command":"Get-Process | Sort-Object CPU -Descending","shell":"powershell","dangerous":false}
+
+Input: Target shell: powershell
+
+find all files larger than 100MB modified this week
+Output: {"command":"Get-ChildItem -Recurse -File | Where-Object { $_.Length -gt 100MB -and $_.LastWriteTime -gt (Get-Date).AddDays(-7) }","shell":"powershell","dangerous":false}

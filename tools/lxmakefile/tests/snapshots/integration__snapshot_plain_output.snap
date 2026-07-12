@@ -1,0 +1,7 @@
+---
+source: tools/lxmakefile/tests/integration.rs
+expression: out.content
+---
+.PHONY: build
+build:
+	cargo build --release

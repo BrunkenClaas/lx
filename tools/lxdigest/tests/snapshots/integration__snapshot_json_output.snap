@@ -1,0 +1,11 @@
+---
+source: tools/lxdigest/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "summary": "A Rust library crate with integration tests and documentation.",
+  "files": [
+    "src/main.rs",
+    "Cargo.toml"
+  ]
+}

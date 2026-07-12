@@ -1,0 +1,25 @@
+# This file is @generated automatically.
+# It is not intended for manual editing.
+version = 3
+
+[[package]]
+name = "openssl"
+version = "0.10.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4e3d72b5b5d9b2eb68d98f72c8c79a7f5ec4e8debc3d60fa4558e4babd60f4c"
+dependencies = [
+ "openssl-sys",
+]
+
+[[package]]
+name = "openssl-sys"
+version = "0.9.65"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a7907e3bfa08bb85105209cdfcb6c63d109f8f6c1ed6ca318fff5c1853fbc1d"
+
+[[package]]
+name = "my-app"
+version = "1.0.0"
+dependencies = [
+ "openssl",
+]

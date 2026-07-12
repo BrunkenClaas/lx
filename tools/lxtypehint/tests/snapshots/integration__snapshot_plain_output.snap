@@ -1,0 +1,6 @@
+---
+source: tools/lxtypehint/tests/integration.rs
+expression: out.code
+---
+def greet(name: str) -> str:
+    return f'Hello {name}'

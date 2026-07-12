@@ -1,0 +1,7 @@
+a1b2c3d feat(auth): add token refresh endpoint
+9f8e7d6 fix(api): handle null response from upstream
+3c4d5e6 docs: update README with new API endpoints
+b2a1c0d chore: bump serde to 1.0.200
+f5e4d3c refactor(parser): extract whitespace-skipping helper
+7c8d9e0 feat(cli): add --json output flag to all commands
+2b3c4d5 fix(config): resolve config file not found on Windows

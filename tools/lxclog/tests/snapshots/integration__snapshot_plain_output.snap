@@ -1,0 +1,24 @@
+---
+source: tools/lxclog/tests/integration.rs
+expression: out.to_plain()
+---
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+
+- Add token refresh endpoint
+- Add --json output flag to all commands
+
+### Changed
+
+- Bump serde to 1.0.200
+- Extract whitespace-skipping helper in parser
+
+### Fixed
+
+- Handle null response from upstream
+- Resolve config file not found on Windows

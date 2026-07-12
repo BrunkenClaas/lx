@@ -1,0 +1,4 @@
+Product: Widget A, Price: $9.99, Stock: 150, Category: Tools
+Product: Gadget B, Price: $24.99, Stock: 42, Category: Electronics
+Product: Thingamajig C, Price: $4.49, Stock: 300, Category: Accessories
+Product: Doohickey D, Price: $14.99, Stock: 88, Category: Tools

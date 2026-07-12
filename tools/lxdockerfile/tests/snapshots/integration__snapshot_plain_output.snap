@@ -1,0 +1,9 @@
+---
+source: tools/lxdockerfile/tests/integration.rs
+expression: out.content
+---
+FROM node:18-alpine
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["node", "index.js"]

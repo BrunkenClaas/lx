@@ -1,0 +1,5 @@
+region,sales,rep_email,rep_ssn
+West,142000,alice@corp.com,123-45-6789
+East,98000,bob@corp.com,987-65-4321
+North,115000,carol@corp.com,555-12-3456
+South,87000,dave@corp.com,111-22-3333

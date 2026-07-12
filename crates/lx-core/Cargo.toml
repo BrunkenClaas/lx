@@ -1,0 +1,19 @@
+[package]
+name = "lx-core"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Core utilities for LX Coreutils: exit codes, errors, I/O helpers, platform abstraction"
+
+[dependencies]
+thiserror = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_System_Console",
+    "Win32_Foundation",
+    "Win32_Globalization",
+] }
+
+[build-dependencies]
+# none — build.rs is minimal

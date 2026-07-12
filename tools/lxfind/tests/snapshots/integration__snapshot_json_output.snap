@@ -1,0 +1,12 @@
+---
+source: tools/lxfind/tests/integration.rs
+assertion_line: 136
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "paths": [
+    "src/backup.sh",
+    "scripts/db_dump.sh"
+  ],
+  "truncated": false
+}

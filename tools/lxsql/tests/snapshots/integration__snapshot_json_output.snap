@@ -1,0 +1,8 @@
+---
+source: tools/lxsql/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "sql": "SELECT id, name, email FROM users ORDER BY name",
+  "mutating": false
+}

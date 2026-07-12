@@ -1,0 +1,122 @@
+name: Release Suite
+
+# Triggered by a tag of the form suite-vX.Y.Z, e.g. suite-v1.0.0
+on:
+  push:
+    tags:
+      - "suite-v*"
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - x86_64-pc-windows-gnu
+    # `ring` (via rustls) compiles C, so the aarch64-musl target needs its C
+    # cross-compiler pointed at explicitly (default aarch64-linux-musl-gcc does
+    # not exist; the gnu cross-gcc links musl static binaries). Unused on the
+    # x86_64 and windows legs.
+    env:
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+      CC_aarch64_unknown_linux_musl: aarch64-linux-gnu-gcc
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Free disk space (Linux)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      # Pinned to match rust-toolchain.toml — release binaries must be built with
+      # a known compiler. Bump both together (see CONTRIBUTING).
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          targets: >
+            x86_64-unknown-linux-musl
+            aarch64-unknown-linux-musl
+            x86_64-pc-windows-gnu
+
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu gcc-mingw-w64
+
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build all tools
+        run: cargo build --workspace --release --target ${{ matrix.target }}
+
+      - name: Assemble ZIP
+        run: |
+          TAG="${GITHUB_REF_NAME}"           # e.g. suite-v1.0.0
+          VERSION="${TAG#suite-v}"           # e.g. 1.0.0
+          TARGET="${{ matrix.target }}"
+          ZIPNAME="lx-coreutils-${VERSION}-${TARGET}"
+          STAGING="${ZIPNAME}"
+
+          mkdir -p "${STAGING}/shell-integration"
+
+          # Binaries
+          if [[ "$TARGET" == *windows* ]]; then
+            for exe in target/${TARGET}/release/lx*.exe; do
+              [[ -f "$exe" ]] && cp "$exe" "${STAGING}/"
+            done
+          else
+            for bin in target/${TARGET}/release/lx*; do
+              [[ -f "$bin" && -x "$bin" ]] && cp "$bin" "${STAGING}/"
+            done
+          fi
+
+          # Docs
+          cp README.md CHANGELOG.md LICENSE-APACHE LICENSE-MIT "${STAGING}/"
+          cp crates/lx-config/config.example.toml "${STAGING}/"
+          cp shell-integration/lx.bash \
+             shell-integration/lx.zsh \
+             shell-integration/lx.fish \
+             shell-integration/lx.ps1 \
+             shell-integration/README.md \
+             "${STAGING}/shell-integration/"
+
+          zip -r "${ZIPNAME}.zip" "${STAGING}"
+          sha256sum "${ZIPNAME}.zip" > "${ZIPNAME}.zip.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: lx-coreutils-${{ matrix.target }}
+          path: |
+            lx-coreutils-*.zip
+            lx-coreutils-*.zip.sha256
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            lx-coreutils-*.zip
+            lx-coreutils-*.zip.sha256
+          generate_release_notes: true

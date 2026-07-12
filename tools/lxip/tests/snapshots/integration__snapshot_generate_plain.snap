@@ -1,0 +1,5 @@
+---
+source: tools/lxip/tests/integration.rs
+expression: out.to_plain(explain_mode)
+---
+ip route add 10.0.0.0/24 via 192.168.1.1

@@ -1,0 +1,18 @@
+# Python snippet
+def process(items):
+    # TODO: add type hints
+    # FIXME: crashes on empty list
+    return [x.value for x in items]
+
+// JavaScript snippet
+function fetchData(url) {
+    // TODO: add retry logic
+    // HACK: timeout is hardcoded
+    return fetch(url);
+}
+
+-- SQL snippet
+SELECT * FROM users
+-- NOTE: add WHERE clause for production
+-- OPTIMIZE: add index on email column
+;

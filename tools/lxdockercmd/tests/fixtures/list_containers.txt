@@ -1,0 +1,1 @@
+list all running containers with their ports

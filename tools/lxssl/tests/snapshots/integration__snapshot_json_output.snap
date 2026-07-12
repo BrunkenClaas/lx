@@ -1,0 +1,9 @@
+---
+source: tools/lxssl/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "explanation": "Certificate has expired.",
+  "likely_cause": "Expired cert.",
+  "suggested_fix": "Run certbot renew."
+}

@@ -1,0 +1,11 @@
+---
+source: tools/lxsum/tests/integration.rs
+expression: out.to_plain()
+---
+Summary: CI deployment succeeded for v3.7.2 after a brief health-check delay
+
+  • Unit tests passed (847/847)
+  • Docker image built and pushed to registry
+  • Staging health check was slow but recovered
+  • Smoke tests passed (12/12)
+  • Production deployment complete

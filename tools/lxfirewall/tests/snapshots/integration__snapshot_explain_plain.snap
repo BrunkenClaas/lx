@@ -1,0 +1,5 @@
+---
+source: tools/lxfirewall/tests/integration.rs
+expression: out.to_plain(explain_mode)
+---
+Chain INPUT has one ACCEPT for SSH from 10/8 then a catch-all DROP.

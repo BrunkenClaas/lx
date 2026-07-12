@@ -1,0 +1,12 @@
+---
+source: tools/lxperm/tests/integration.rs
+expression: out.to_plain()
+---
+config.txt  [-rw-r--r--]  risk: standard
+  Owner can read and write; group and others can only read. Standard read-only sharing.
+
+script.sh  [-rwxrwxrwx]  risk: warning
+  All users can read, write, and execute. Anyone can modify this script.
+
+uploads  [drwxrwxrwx]  risk: critical
+  World-writable directory. Any user can create or delete files here.

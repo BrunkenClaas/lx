@@ -1,0 +1,7 @@
+Context for the email:
+- Recipient: john.doe@clientcorp.com, mobile +1-555-867-5309
+- Subject: onboarding delay
+- Their internal ticket ref: INC-20240115-87342
+- API key we gave them: sk-proj-abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOP
+- Their SSN on file: 123-45-6789
+- Write a polite apology for the delayed onboarding and next steps

@@ -1,0 +1,21 @@
+how to install rust
+
+prerequisites
+- a 64-bit operating system (linux, macos, or windows)
+- internet connection
+
+installation steps
+go to rustup.rs in your browser
+run the installer command shown on the page
+follow the on-screen prompts
+restart your terminal
+
+verify the installation
+run rustc --version to check the compiler
+run cargo --version to check the build tool
+both should print a version number
+
+next steps
+read the rust book at doc.rust-lang.org
+try the rustlings exercises
+join the rust community forum

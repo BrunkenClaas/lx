@@ -1,0 +1,6 @@
+2024-04-01 08:00:00 INFO  Service starting
+2024-04-01 08:00:01 INFO  Config loaded
+2024-04-01 08:00:02 INFO  Ready
+2024-04-01 08:01:00 INFO  Processed batch job: 50 items
+2024-04-01 08:02:00 INFO  Processed batch job: 48 items
+2024-04-01 08:03:00 INFO  Processed batch job: 52 items

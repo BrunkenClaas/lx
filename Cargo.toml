@@ -1,0 +1,119 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/lx-core",
+  # Suite umbrella / discovery command (no LLM — special case, see docs/design_document.md §13)
+  "tools/lx",
+  "crates/lx-llm",
+  "crates/lx-config",
+  "crates/lx-redact",
+  "crates/lx-testkit",
+  # Dev-only extended acceptance harness (not a productive tool — see docs/design_document.md)
+  "crates/lx-acceptance",
+  # Tier 1 — universal daily-driver tools
+  "tools/lxexplain",
+  "tools/lxcommit",
+  "tools/lxdebug",
+  "tools/lxsh",
+  "tools/lxsum",
+  "tools/lxerrno",
+  "tools/lxdiff",
+  "tools/lxman",
+  "tools/lxdoc",
+  "tools/lxcode",
+  "tools/lxjq",
+  "tools/lxregex",
+  "tools/lxsql",
+  "tools/lxurl",
+  # Tier 2 — every developer, frequently
+  "tools/lxpr",
+  "tools/lxclog",
+  "tools/lxredact",
+  "tools/lxsecret",
+  "tools/lxperm",
+  "tools/lxtodo",
+  "tools/lxgrep",
+  "tools/lxfind",
+  "tools/lxproof",
+  "tools/lxdraft",
+  "tools/lxcurl",
+  "tools/lxgitignore",
+  # Tier 3 — most developers, regularly
+  "tools/lxlog",
+  "tools/lxconf",
+  "tools/lxcsv",
+  "tools/lxjson",
+  "tools/lxtable",
+  "tools/lxmd",
+  "tools/lxmermaid",
+  "tools/lxpull",
+  "tools/lxclass",
+  "tools/lxsed",
+  "tools/lxtypehint",
+  "tools/lxdockerfile",
+  "tools/lxmakefile",
+  "tools/lxstandup",
+  "tools/lxnotes",
+  "tools/lxconv",
+  "tools/lxgraph",
+  "tools/lxundo",
+  "tools/lxdigest",
+  # Tier 4 — sysadmin/devops/specific stack
+  "tools/lxkubectl",
+  "tools/lxdockercmd",
+  "tools/lxrsync",
+  "tools/lxffmpeg",
+  "tools/lxcve",
+  "tools/lxcert",
+  "tools/lxjwt",
+  "tools/lxchmod",
+  "tools/lxtl",
+  "tools/lxfixcmd",
+  # Tier 5 — specialised / occasional
+  "tools/lxpatch",
+  "tools/lxrename",
+  "tools/lxport",
+  "tools/lxcron",
+  "tools/lxask",
+  "tools/lxregexplain",
+  "tools/lxprintf",
+  "tools/lxmock",
+  "tools/lxkill",
+  "tools/lxmount",
+  "tools/lxfixscript",
+  "tools/lxdns",
+  "tools/lxssl",
+  "tools/lxping",
+  "tools/lxfirewall",
+  "tools/lxhttp",
+  "tools/lxip",
+]
+
+[workspace.dependencies]
+lx-core    = { path = "crates/lx-core" }
+lx-llm     = { path = "crates/lx-llm" }
+lx-config  = { path = "crates/lx-config" }
+lx-redact  = { path = "crates/lx-redact" }
+lx-testkit = { path = "crates/lx-testkit" }
+lx-acceptance = { path = "crates/lx-acceptance" }
+# Lower bounds reflect the minor versions actually tested against (see Cargo.lock
+# for the exact resolved versions). The manifest expresses intent; Cargo.lock
+# pins exact for reproducibility. Bump these deliberately — see the
+# "Toolchain & dependency policy" in CONTRIBUTING.md.
+clap       = { version = "4.6", features = ["derive"] }
+serde      = { version = "1.0.200", features = ["derive"] }
+serde_json = "1.0.140"
+thiserror  = "1.0.69"
+ureq       = { version = "2.12", features = ["json"] }
+toml       = "0.8.23"
+insta      = "1.47"
+# regex and once_cell: MIT/Apache, no unsafe, approved for lx-redact and tools
+regex      = "1.12"
+once_cell  = "1.21"
+
+[profile.release]
+opt-level      = "z"
+lto            = true
+codegen-units  = 1
+panic          = "abort"
+strip          = true

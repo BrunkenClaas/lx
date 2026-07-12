@@ -1,0 +1,6 @@
+---
+source: tools/lxcode/tests/integration.rs
+expression: out.to_plain()
+---
+def greet(name):
+    print(f'Hello, {name}!')

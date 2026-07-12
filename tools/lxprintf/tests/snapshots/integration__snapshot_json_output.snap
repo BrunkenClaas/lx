@@ -1,0 +1,8 @@
+---
+source: tools/lxprintf/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "format": "%Y-%m-%d %H:%M:%S",
+  "explanation": "%Y=4-digit year, %m=2-digit month, %d=2-digit day, %H=24h hour, %M=minutes, %S=seconds."
+}

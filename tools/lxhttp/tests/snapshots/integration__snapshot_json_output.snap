@@ -1,0 +1,10 @@
+---
+source: tools/lxhttp/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "explanation": "401 due to bad token.",
+  "status": 401,
+  "likely_cause": "Expired token.",
+  "suggested_fix": "Re-authenticate."
+}

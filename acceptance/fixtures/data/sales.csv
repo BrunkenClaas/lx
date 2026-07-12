@@ -1,0 +1,13 @@
+region,product,q1_sales,q2_sales,q3_sales,q4_sales,salesperson
+North,Widget A,12500,15200,14800,18900,alice
+North,Widget B,8900,9200,9500,11200,alice
+South,Widget A,18200,16900,17500,19800,bob
+South,Widget B,22100,24500,23800,26700,bob
+East,Widget A,9800,10200,11100,13400,charlie
+East,Widget B,5600,6100,6800,7900,charlie
+West,Widget A,16700,17800,19200,21400,dave
+West,Widget B,19200,20100,21500,23700,dave
+North,Widget C,3400,4200,5100,6800,eve
+South,Widget C,5900,7100,8200,9800,frank
+East,Widget C,2300,2800,3400,4200,grace
+West,Widget C,8900,10200,11800,13500,henry

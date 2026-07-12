@@ -1,0 +1,10 @@
+---
+source: tools/lxgitignore/tests/integration.rs
+expression: out.to_plain()
+---
+# Build artifacts
+/target/
+
+# Editor files
+.idea/
+.vscode/

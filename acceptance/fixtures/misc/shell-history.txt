@@ -1,0 +1,15 @@
+git status
+git add .
+git commit -m "fix: typo in README"
+git push origin main
+cargo build
+cargo test
+cargo clippy
+docker ps
+docker compose up -d
+kubectl get pods -n prod
+git log --oneline -10
+git diff HEAD~1
+cargo fmt
+git stash
+git stash pop

@@ -1,0 +1,29 @@
+2024-03-15 09:00:00 INFO  Application starting, version 2.4.1
+2024-03-15 09:00:01 INFO  Loading configuration from /etc/app/config.yml
+2024-03-15 09:00:01 INFO  Configuration loaded successfully
+2024-03-15 09:00:02 INFO  Connecting to database at db.internal:5432
+2024-03-15 09:00:03 INFO  Database connection established
+2024-03-15 09:00:03 INFO  Starting HTTP server on port 8080
+2024-03-15 09:00:04 INFO  Server ready, accepting connections
+2024-03-15 09:15:22 INFO  GET /api/health 200 OK 2ms
+2024-03-15 09:15:25 INFO  GET /api/users 200 OK 45ms
+2024-03-15 09:16:00 WARN  Slow query detected: SELECT * FROM orders took 2340ms
+2024-03-15 09:16:01 INFO  GET /api/orders 200 OK 2345ms
+2024-03-15 09:30:00 INFO  Background job: cleanup started
+2024-03-15 09:30:05 INFO  Background job: cleanup completed, 147 records removed
+2024-03-15 10:00:00 ERROR Failed to connect to cache server: connection refused (redis.internal:6379)
+2024-03-15 10:00:00 WARN  Falling back to uncached responses
+2024-03-15 10:00:01 ERROR Failed to connect to cache server: connection refused (redis.internal:6379)
+2024-03-15 10:00:02 ERROR Failed to connect to cache server: connection refused (redis.internal:6379)
+2024-03-15 10:00:03 ERROR Failed to connect to cache server: connection refused (redis.internal:6379)
+2024-03-15 10:00:04 WARN  Cache unavailable; all requests will hit the database directly
+2024-03-15 10:05:00 ERROR Database connection pool exhausted (max: 20)
+2024-03-15 10:05:01 ERROR Request failed: could not acquire database connection within 5000ms
+2024-03-15 10:05:01 ERROR Request failed: could not acquire database connection within 5000ms
+2024-03-15 10:05:02 WARN  Throughput degraded: 15 requests queued
+2024-03-15 10:05:10 INFO  GET /api/products 503 Service Unavailable 5001ms
+2024-03-15 10:05:15 FATAL Unhandled exception in worker thread: NullPointerException at OrderProcessor.java:142
+2024-03-15 10:05:15 FATAL Worker thread terminated unexpectedly
+2024-03-15 10:05:16 INFO  Restarting worker thread (attempt 1/3)
+2024-03-15 10:05:17 INFO  Worker thread restarted successfully
+2024-03-15 10:10:00 INFO  Health check: all systems nominal

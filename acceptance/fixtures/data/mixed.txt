@@ -1,0 +1,31 @@
+Customer Data Summary
+
+Name: John Smith
+Age: 35
+City: New York
+Purchase History:
+  - 2026-01-15: Widget A ($49.99)
+  - 2026-02-20: Widget B ($29.99)
+  - 2026-03-10: Widget C ($79.99)
+
+Name: Jane Doe
+Age: 28
+City: Los Angeles
+Purchase History:
+  - 2026-01-05: Widget A ($49.99)
+  - 2026-03-15: Widget A ($49.99)
+  - 2026-04-20: Widget D ($99.99)
+
+Name: Bob Johnson
+Age: 42
+City: Chicago
+Purchase History:
+  - 2026-02-10: Widget B ($29.99)
+  - 2026-04-05: Widget C ($79.99)
+
+Name: Alice Williams
+Age: 31
+City: Houston
+Purchase History:
+  - 2026-01-20: Widget D ($99.99)
+  - 2026-05-01: Widget B ($29.99)

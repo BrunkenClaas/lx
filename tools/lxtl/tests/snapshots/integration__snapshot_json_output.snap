@@ -1,0 +1,7 @@
+---
+source: tools/lxtl/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "text": "Bonjour le monde"
+}

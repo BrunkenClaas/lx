@@ -1,0 +1,1 @@
+delete all pods with the label app=nginx in the staging namespace

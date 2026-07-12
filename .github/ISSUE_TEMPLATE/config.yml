@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or usage help
+    url: https://github.com/BrunkenClaas/lx/discussions
+    about: >-
+      Not sure if it's a bug? Want to ask how to wire a tool into your shell,
+      pick a provider, or compose a pipeline? Start a Discussion.
+  - name: Security vulnerability
+    url: https://github.com/BrunkenClaas/lx/security/advisories/new
+    about: >-
+      Report a vulnerability privately (secret leaking past redaction, a tool
+      executing generated commands, etc.). Do NOT open a public issue. See
+      SECURITY.md.

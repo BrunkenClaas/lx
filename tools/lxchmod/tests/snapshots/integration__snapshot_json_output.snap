@@ -1,0 +1,9 @@
+---
+source: tools/lxchmod/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "suggestion": "chmod 644 data.csv",
+  "reason": "World-writable files allow any user to modify them. 644 grants owner read/write and others read-only.",
+  "dangerous": false
+}

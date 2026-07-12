@@ -1,0 +1,19 @@
+Input: Target shell: cmd
+
+list all files sorted by modification time
+Output: {"command":"dir /o:d","shell":"cmd","dangerous":false}
+
+Input: Target shell: cmd
+
+find all .log files in the current directory
+Output: {"command":"dir /s /b *.log","shell":"cmd","dangerous":false}
+
+Input: Target shell: cmd
+
+show disk usage of current directory
+Output: {"command":"dir /s","shell":"cmd","dangerous":false}
+
+Input: Target shell: cmd
+
+find all files larger than 100MB modified this week
+Output: {"command":"forfiles /S /C \"cmd /c if @fsize GEQ 104857600 echo @path\"","shell":"cmd","dangerous":false}

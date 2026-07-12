@@ -1,0 +1,6 @@
+total 32
+drwxr-xr-x 2 user group 4096 Apr 01 08:00 .
+drwxr-xr-x 8 user group 4096 Apr 01 07:55 ..
+-rw-rw-rw- 1 user group 1024 Apr 01 08:00 notes.txt
+-rwxrwxrwx 1 user group  256 Apr 01 08:00 setup.sh
+-rw------- 1 user group  512 Apr 01 08:00 id_rsa

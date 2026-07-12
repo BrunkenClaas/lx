@@ -1,0 +1,12 @@
+---
+source: tools/lxman/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "summary": "grep searches for lines matching a pattern in files or stdin.",
+  "examples": [
+    "grep 'error' app.log — find all lines containing 'error'",
+    "grep -r 'TODO' ./src — search recursively",
+    "grep -n 'pattern' file.txt — show line numbers"
+  ]
+}

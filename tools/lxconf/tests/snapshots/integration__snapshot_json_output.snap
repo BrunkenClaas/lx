@@ -1,0 +1,21 @@
+---
+source: tools/lxconf/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "findings": [
+    {
+      "line": 3,
+      "severity": "error",
+      "message": "port value 99999 is outside the valid range 1-65535",
+      "hint": "Use a port number between 1 and 65535"
+    },
+    {
+      "line": 4,
+      "severity": "warning",
+      "message": "duplicate key port overrides the earlier definition on line 3",
+      "hint": "Remove the duplicate key"
+    }
+  ],
+  "content": ""
+}

@@ -1,0 +1,5 @@
+---
+source: tools/lxerrno/tests/integration.rs
+expression: out.to_plain()
+---
+exit 130: Terminated by SIGINT (signal 2) — the process was interrupted by Ctrl-C.

@@ -1,0 +1,10 @@
+---
+source: tools/lxnotes/tests/integration.rs
+expression: out.to_plain()
+---
+## Decisions
+- Deploy on Thursdays at 9pm
+- Ops approval required
+
+## Action Items
+- John to finish dashboard by Friday

@@ -1,0 +1,22 @@
+---
+source: tools/lxregexplain/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "regex": "^\\d+$",
+  "explanation": "Matches one or more digits anchored to the full string.",
+  "parts": [
+    {
+      "token": "^",
+      "means": "Start of string anchor"
+    },
+    {
+      "token": "\\d+",
+      "means": "One or more digit characters"
+    },
+    {
+      "token": "$",
+      "means": "End of string anchor"
+    }
+  ]
+}

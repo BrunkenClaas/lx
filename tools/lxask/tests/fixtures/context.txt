@@ -1,0 +1,5 @@
+This project follows the standard Rust error handling conventions.
+All public functions return Result<T, E> where E implements std::error::Error.
+The thiserror crate is used to derive error types. The anyhow crate is NOT used.
+Errors are propagated with the ? operator and logged to stderr before returning.
+The BEARER = "sk-abcdefghijklmnopqrstuvwxyz123456" value in the config is a placeholder and should be replaced with a real value.

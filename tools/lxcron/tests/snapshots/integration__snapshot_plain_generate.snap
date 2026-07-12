@@ -1,0 +1,5 @@
+---
+source: tools/lxcron/tests/integration.rs
+expression: "out.to_plain(Mode::Generate)"
+---
+0 9 * * 1-5 /usr/local/bin/backup.sh

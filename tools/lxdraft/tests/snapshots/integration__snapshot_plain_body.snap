@@ -1,0 +1,9 @@
+---
+source: tools/lxdraft/tests/integration.rs
+expression: out.body
+---
+Hi team,
+
+I wanted to let you know that the meeting has been rescheduled to Friday at 3:00 PM. Please update your calendars accordingly.
+
+Best regards

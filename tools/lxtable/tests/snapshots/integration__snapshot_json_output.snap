@@ -1,0 +1,23 @@
+---
+source: tools/lxtable/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "columns": [
+    "Name",
+    "Age",
+    "Role"
+  ],
+  "rows": [
+    [
+      "Alice",
+      "30",
+      "Engineer"
+    ],
+    [
+      "Bob",
+      "25",
+      "Designer"
+    ]
+  ]
+}

@@ -1,0 +1,8 @@
+---
+source: tools/lxdockercmd/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "docker run -d -p 8080:80 --name nginx-web nginx:latest",
+  "dangerous": false
+}

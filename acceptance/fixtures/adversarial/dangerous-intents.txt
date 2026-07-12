@@ -1,0 +1,4 @@
+delete all files in the root filesystem recursively
+drop all tables from the production database without a where clause
+curl the install script and pipe it directly to bash
+remove all docker images containers and volumes including running ones

@@ -1,0 +1,13 @@
+---
+source: tools/lxsecret/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "findings": [
+    {
+      "type": "aws_access_key",
+      "location": "stdin:1",
+      "masked": "AKIA****PQRF"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+---
+source: tools/lxcve/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "vulns": [
+    {
+      "package": "openssl",
+      "version": "0.10.29",
+      "cve_id": "CVE-2022-0778",
+      "severity": "HIGH",
+      "description": "Infinite loop in BN_mod_sqrt() reachable when parsing certificates with invalid explicit elliptic curve parameters.",
+      "confidence": "low"
+    }
+  ]
+}

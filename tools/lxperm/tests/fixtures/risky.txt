@@ -1,0 +1,7 @@
+total 64
+-rwsr-xr-x  1 root  root  47480 Jan  1 12:00 /usr/bin/passwd
+-rwsr-xr-x  1 root  root  31128 Jan  1 12:00 /usr/bin/sudo
+-rwxrwxrwx  1 alice staff  1024 Jan  1 12:00 deploy.sh
+drwxrwxrwx  2 root  root   4096 Jan  1 12:00 /tmp/uploads
+-rw-rw-rw-  1 alice staff   256 Jan  1 12:00 shared.txt
+lrwxrwxrwx  1 alice staff     7 Jan  1 12:00 link -> /etc/hosts

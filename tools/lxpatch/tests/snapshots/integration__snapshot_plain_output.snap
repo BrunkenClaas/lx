@@ -1,0 +1,9 @@
+---
+source: tools/lxpatch/tests/integration.rs
+expression: out.to_plain()
+---
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-x = 1
++y = 1

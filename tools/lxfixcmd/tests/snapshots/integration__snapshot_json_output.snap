@@ -1,0 +1,9 @@
+---
+source: tools/lxfixcmd/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "git push origin main",
+  "reason": "'psh' is a typo for 'push'",
+  "dangerous": false
+}

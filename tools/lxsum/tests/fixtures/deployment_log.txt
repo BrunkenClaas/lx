@@ -1,0 +1,14 @@
+2024-03-15 08:01:12 [INFO]  Deployment pipeline started for release v3.7.2
+2024-03-15 08:01:15 [INFO]  Running unit tests: 847 tests passed, 0 failed
+2024-03-15 08:01:58 [INFO]  Building Docker image: myapp:v3.7.2
+2024-03-15 08:03:21 [INFO]  Docker image built successfully (1.24 GB)
+2024-03-15 08:03:22 [INFO]  Pushing image to registry.example.com
+2024-03-15 08:04:10 [INFO]  Image pushed successfully
+2024-03-15 08:04:11 [INFO]  Deploying to staging environment
+2024-03-15 08:04:45 [WARN]  Health check slow: 3 of 5 replicas responding (expected 5/5)
+2024-03-15 08:05:15 [INFO]  All 5 replicas healthy
+2024-03-15 08:05:16 [INFO]  Running smoke tests against staging
+2024-03-15 08:05:32 [INFO]  Smoke tests passed (12/12)
+2024-03-15 08:05:33 [INFO]  Promoting deployment to production
+2024-03-15 08:06:21 [INFO]  Production deployment complete — v3.7.2 is live
+2024-03-15 08:06:21 [INFO]  Rollback window: 30 minutes

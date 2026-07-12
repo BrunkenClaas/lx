@@ -1,0 +1,9 @@
+---
+source: tools/lxcron/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "crontab": "0 9 * * 1-5 /usr/local/bin/backup.sh",
+  "explanation": "Runs at 9am Mon-Fri",
+  "dangerous": false
+}

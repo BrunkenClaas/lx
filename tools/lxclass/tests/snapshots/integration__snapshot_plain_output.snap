@@ -1,0 +1,5 @@
+---
+source: tools/lxclass/tests/integration.rs
+expression: out.label.as_str()
+---
+spam

@@ -1,0 +1,11 @@
+Application crashes on startup when the config file is missing.
+
+Steps to reproduce:
+1. Delete ~/.config/myapp/config.toml
+2. Run `myapp --start`
+3. Observe immediate segfault
+
+Expected: graceful error message suggesting the user run `myapp --init`
+Actual: SIGSEGV crash with no useful output
+
+OS: Ubuntu 22.04, version 1.4.2

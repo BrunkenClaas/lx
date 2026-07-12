@@ -1,0 +1,14 @@
+CONNECTED(00000005)
+depth=0 CN = expired.badssl.com, OU = Test, O = BadSSL, L = San Francisco, ST = California, C = US
+verify error:num=10:certificate has expired
+verify return:1
+depth=0 CN = expired.badssl.com, OU = Test, O = BadSSL, L = San Francisco, ST = California, C = US
+verify error:num=10:certificate has expired
+verify return:1
+---
+Certificate chain
+ 0 s:CN = expired.badssl.com
+   i:C = US, ST = California, L = San Francisco, O = BadSSL, CN = BadSSL Intermediate Certificate Authority
+---
+SSL handshake has read 2966 bytes and written 411 bytes
+Verification error: certificate has expired

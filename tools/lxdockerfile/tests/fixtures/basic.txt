@@ -1,0 +1,1 @@
+Node.js 18 app with npm, exposes port 3000

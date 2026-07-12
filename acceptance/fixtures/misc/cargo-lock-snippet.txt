@@ -1,0 +1,18 @@
+[[package]]
+name = "my-app"
+version = "0.1.0"
+dependencies = [
+ "serde 1.0.150",
+ "tokio 1.28.0",
+ "openssl 0.10.45",
+]
+
+[[package]]
+name = "openssl"
+version = "0.10.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "tokio"
+version = "1.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"

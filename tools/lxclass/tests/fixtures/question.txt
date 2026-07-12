@@ -1,0 +1,2 @@
+How do I configure the timeout setting for HTTP requests in the client library?
+I've looked at the README but couldn't find clear documentation on this.

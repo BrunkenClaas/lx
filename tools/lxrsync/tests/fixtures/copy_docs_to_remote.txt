@@ -1,0 +1,1 @@
+copy local folder /home/user/docs to remote server backup@remote:/backup/docs

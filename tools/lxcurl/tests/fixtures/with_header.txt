@@ -1,0 +1,1 @@
+GET https://api.github.com/rate_limit with header Accept: application/vnd.github+json

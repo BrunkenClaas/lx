@@ -1,0 +1,13 @@
+---
+source: tools/lxstandup/tests/integration.rs
+expression: out.to_plain()
+---
+Done:
+- Added export endpoint for reports
+- Fixed null pointer in data parser
+
+Next:
+- Review open pull requests
+
+Blockers:
+(none)

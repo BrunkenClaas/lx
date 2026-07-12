@@ -1,0 +1,10 @@
+---
+source: tools/lxjwt/tests/integration.rs
+expression: out.to_plain()
+---
+Header:  Signed with HMAC-SHA256 algorithm, standard JWT type.
+Payload: Issued by example-service for subject user-42 with a viewer role; valid for one hour.
+Notes:
+  • Token has a 1-hour lifetime (iat to exp)
+  • role claim grants viewer-level access
+  • No audience (aud) claim is set

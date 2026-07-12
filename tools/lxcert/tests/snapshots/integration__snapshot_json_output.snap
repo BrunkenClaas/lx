@@ -1,0 +1,14 @@
+---
+source: tools/lxcert/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "subject": "CN=localhost, O=Test Corp, C=US",
+  "issuer": "CN=localhost, O=Test Corp, C=US",
+  "valid_until": "2025-01-01",
+  "notes": [
+    "Self-signed certificate",
+    "Suitable for local development only",
+    "No Subject Alternative Names defined"
+  ]
+}

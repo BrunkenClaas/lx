@@ -1,0 +1,8 @@
+---
+source: tools/lxping/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "explanation": "100% packet loss.",
+  "verdict": "host"
+}

@@ -1,0 +1,11 @@
+v1.2.0 2024-03-15
+f1e2d3c feat(export): add CSV export functionality
+a2b3c4d fix(reports): correct timezone offset in date fields
+8e7f6g5 security: update rustls to fix CVE-2024-1234
+
+v1.1.0 2024-02-01
+e5f6a7b feat(ui): add dark mode toggle
+c8d9e0f fix(auth): resolve login redirect loop after session expiry
+
+v1.0.0 2024-01-10
+1a2b3c4 feat: initial release with core functionality

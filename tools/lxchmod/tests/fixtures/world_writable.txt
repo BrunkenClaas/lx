@@ -1,0 +1,1 @@
+-rw-rw-rw- 1 user group 1234 Jan 01 12:00 data.csv

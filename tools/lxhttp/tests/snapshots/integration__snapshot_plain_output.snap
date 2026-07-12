@@ -1,0 +1,5 @@
+---
+source: tools/lxhttp/tests/integration.rs
+expression: out.to_plain()
+---
+401 due to bad token.

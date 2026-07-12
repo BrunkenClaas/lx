@@ -1,0 +1,15 @@
+Error: ENOENT: no such file or directory, open '/app/config.json'
+    at Object.openSync (node:fs:600:18)
+    at Object.readFileSync (node:fs:468:35)
+    at Object.<anonymous> (/app/server.js:5:19)
+    at Module._compile (node:internal/modules/cjs/loader:1376:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1435:10)
+    at Module.load (node:internal/modules/cjs/loader:1207:32)
+    at Module._load (node:internal/modules/cjs/loader:1023:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/cjs/loader:1514:12)
+    at node:internal/main/run_main_module:23:47 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/app/config.json'
+}

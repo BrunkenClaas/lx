@@ -1,0 +1,88 @@
+commit a1b2c3d4e5f6789012345678901234567890abcd
+Author: Alice Dev <alice@example.com>
+Date:   Mon Jan 6 10:00:00 2025
+
+    add user profile update endpoint
+
+    Allow authenticated users to update their display name and avatar URL
+    via a new PATCH /users/{id}/profile endpoint.
+
+diff --git a/src/api/users.rs b/src/api/users.rs
+index 1234567..abcdefg 100644
+--- a/src/api/users.rs
++++ b/src/api/users.rs
+@@ -42,6 +42,38 @@ pub fn get_user(id: Uuid) -> Result<User, ApiError> {
+     db::find_user(id).map_err(ApiError::from)
+ }
+
++/// PATCH /users/{id}/profile
++///
++/// Update the authenticated user's display name and/or avatar URL.
++/// Only the owner of the account may update their own profile.
++pub fn update_profile(
++    id: Uuid,
++    caller: &AuthenticatedUser,
++    req: UpdateProfileRequest,
++) -> Result<User, ApiError> {
++    if caller.id != id {
++        return Err(ApiError::Forbidden("cannot update another user's profile".to_string()));
++    }
++    if let Some(ref name) = req.display_name {
++        if name.trim().is_empty() || name.len() > 64 {
++            return Err(ApiError::BadRequest("display_name must be 1–64 chars".to_string()));
++        }
++    }
++    if let Some(ref url) = req.avatar_url {
++        if !url.starts_with("https://") {
++            return Err(ApiError::BadRequest("avatar_url must use HTTPS".to_string()));
++        }
++    }
++    db::update_user_profile(id, req).map_err(ApiError::from)
++}
++
++#[derive(Debug, serde::Deserialize)]
++pub struct UpdateProfileRequest {
++    pub display_name: Option<String>,
++    pub avatar_url:   Option<String>,
++}
+
+diff --git a/src/api/routes.rs b/src/api/routes.rs
+index 2345678..bcdefgh 100644
+--- a/src/api/routes.rs
++++ b/src/api/routes.rs
+@@ -15,6 +15,7 @@ pub fn register(app: &mut App) {
+     app.get("/users/{id}", handlers::get_user);
++    app.patch("/users/{id}/profile", handlers::update_profile);
+ }
+
+diff --git a/tests/api/users_test.rs b/tests/api/users_test.rs
+index 3456789..cdefghi 100644
+--- a/tests/api/users_test.rs
++++ b/tests/api/users_test.rs
+@@ -28,6 +28,24 @@ fn test_get_user_not_found() {
+     assert_eq!(resp.status(), 404);
+ }
++
++#[test]
++fn test_update_profile_success() {
++    let user = create_test_user();
++    let resp = test_patch(
++        &format!("/users/{}/profile", user.id),
++        json!({"display_name": "New Name"}),
++        &user.token,
++    );
++    assert_eq!(resp.status(), 200);
++    assert_eq!(resp.json::<User>().display_name, "New Name");
++}
++
++#[test]
++fn test_update_profile_forbidden() {
++    let user_a = create_test_user();
++    let user_b = create_test_user();
++    let resp = test_patch(
++        &format!("/users/{}/profile", user_b.id),
++        json!({"display_name": "Hacker"}),
++        &user_a.token,
++    );
++    assert_eq!(resp.status(), 403);
++}

@@ -1,0 +1,8 @@
+---
+source: tools/lxpr/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "title": "add user profile update endpoint",
+  "body": "Summary: adds PATCH /users/id/profile endpoint. Only the account owner may update their own profile. Changes: new update_profile handler with validation, register new PATCH route, success and forbidden tests. Test Plan: run cargo test, verify PATCH updates display name, verify 403 when updating another users profile"
+}

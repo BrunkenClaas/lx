@@ -1,0 +1,8 @@
+---
+source: tools/lxdraft/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "subject": "Meeting rescheduled to Friday",
+  "body": "Hi team,\n\nI wanted to let you know that the meeting has been rescheduled to Friday at 3:00 PM. Please update your calendars accordingly.\n\nBest regards"
+}

@@ -1,0 +1,8 @@
+---
+source: tools/lxdoc/tests/integration.rs
+assertion_line: 158
+expression: out.to_plain()
+---
+def add(a, b):
+    """Add two numbers and return their sum."""
+    return a + b

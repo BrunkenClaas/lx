@@ -1,0 +1,5 @@
+---
+source: tools/lxfixcmd/tests/integration.rs
+expression: out.to_plain()
+---
+git push origin main

@@ -1,0 +1,8 @@
+---
+source: tools/lxman/tests/integration.rs
+expression: out.to_plain()
+---
+grep searches for lines matching a pattern in files or stdin.
+  1. grep 'error' app.log — find all lines containing 'error'
+  2. grep -r 'TODO' ./src — search recursively
+  3. grep -n 'pattern' file.txt — show line numbers

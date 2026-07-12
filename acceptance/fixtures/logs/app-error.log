@@ -1,0 +1,30 @@
+2026-05-30 10:45:23.456 ERROR: Database connection failed
+java.sql.SQLException: Cannot connect to database
+  at com.app.db.ConnectionPool.getConnection(ConnectionPool.java:157)
+  at com.app.api.UserService.loadUser(UserService.java:42)
+  at com.app.api.UserController.getUser(UserController.java:23)
+  at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+  at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+Caused by: java.net.ConnectException: Connection refused (Connection refused)
+  at java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:196)
+  at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)
+
+2026-05-30 10:46:01.234 ERROR: Authentication failed for user alice@example.com
+com.app.auth.AuthException: Invalid token
+  at com.app.auth.JwtValidator.validate(JwtValidator.java:89)
+  at com.app.auth.AuthFilter.doFilter(AuthFilter.java:34)
+
+2026-05-30 10:46:45.678 WARNING: High memory usage detected: 85% of heap allocated
+java.lang.OutOfMemoryError: Java heap space
+  at java.util.Arrays.copyOf(Arrays.java:3210)
+  at com.app.cache.CacheManager.put(CacheManager.java:156)
+
+2026-05-30 10:47:12.901 ERROR: Timeout waiting for response from payment service
+java.util.concurrent.TimeoutException: Request timeout after 30000ms
+  at com.app.payment.PaymentClient.processPayment(PaymentClient.java:201)
+  at com.app.order.OrderProcessor.checkout(OrderProcessor.java:567)
+
+2026-05-30 10:48:34.567 CRITICAL: Unhandled exception in request processing
+java.lang.NullPointerException: Cannot invoke method getEmail() on null object
+  at com.app.email.EmailService.sendNotification(EmailService.java:234)
+  at com.app.order.OrderProcessor.sendConfirmation(OrderProcessor.java:598)

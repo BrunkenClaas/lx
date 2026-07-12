@@ -1,0 +1,10 @@
+---
+source: tools/lxip/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "ip route add 10.0.0.0/24 via 192.168.1.1",
+  "explanation": "Adds route.",
+  "warnings": [],
+  "dangerous": false
+}

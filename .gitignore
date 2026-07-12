@@ -1,0 +1,52 @@
+/target/
+**/*.rs.bk
+.env
+.lx.toml
+dist/
+*.sig
+*.sha256
+acceptance/report-*.md
+acceptance/runs/
+
+# AI-agent operating manuals and local config — personal to whichever assistant a
+# contributor uses, not project docs. The contributor docs are CONTRIBUTING.md +
+# docs/design_document.md. Keep these out of the repo regardless of the tool.
+
+# Claude / Claude Code
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Cursor
+.cursorrules
+.cursor/
+.cursorignore
+
+# GitHub Copilot
+.github/copilot-instructions.md
+
+# Windsurf / Codeium
+.windsurfrules
+.windsurf/
+
+# Google Gemini / Jules
+GEMINI.md
+.gemini/
+.idx/
+
+# Aider
+.aider*
+# (CONVENTIONS.md is Aider's convention file, but it's too plausible as a real
+# project doc to blanket-ignore — Aider users: add it to .git/info/exclude.)
+
+# OpenAI Codex CLI / other assistants
+AGENTS.md
+AGENT.md
+.agent/
+
+# Continue, Cline, Roo, Sourcegraph Cody, JetBrains AI
+.continue/
+.clinerules
+.roo/
+.cody/
+.junie/

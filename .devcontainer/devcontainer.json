@@ -1,0 +1,35 @@
+{
+  "name": "LX Coreutils",
+
+  // The base image ships a recent stable Rust, but the repo pins an EXACT
+  // toolchain in rust-toolchain.toml (currently 1.95.0). rustup honors that
+  // file automatically on the first cargo command, so the pinned version is
+  // NOT duplicated here — that keeps a single source of truth and avoids the
+  // lock-step drift the version-pinning policy exists to prevent
+  // (see CONTRIBUTING.md → "Toolchain & dependency policy").
+  "image": "mcr.microsoft.com/devcontainers/rust:1-bookworm",
+
+  "features": {
+    // musl target + linker, so `cargo build --target x86_64-unknown-linux-musl`
+    // (the release/CI target) works out of the box.
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+
+  "onCreateCommand": "bash .devcontainer/setup.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb"
+      ],
+      "settings": {
+        "rust-analyzer.check.command": "clippy"
+      }
+    }
+  },
+
+  // Non-root, matches the base image's default user.
+  "remoteUser": "vscode"
+}

@@ -1,0 +1,5 @@
+---
+source: tools/lxping/tests/integration.rs
+expression: out.to_plain()
+---
+100% packet loss.

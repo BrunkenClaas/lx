@@ -1,0 +1,9 @@
+---
+source: tools/lxcode/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "code": "fn add(a: i32, b: i32) -> i32 { a + b }",
+  "language": "rust",
+  "dangerous": false
+}

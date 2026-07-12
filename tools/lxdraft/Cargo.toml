@@ -1,0 +1,28 @@
+[package]
+name = "lxdraft"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Draft an email or ticket from bullet points"
+
+[[bin]]
+name = "lxdraft"
+path = "src/main.rs"
+
+[lib]
+name = "lxdraft"
+path = "src/lib.rs"
+
+[dependencies]
+lx-core    = { workspace = true }
+lx-llm     = { workspace = true }
+lx-config  = { workspace = true }
+lx-redact  = { workspace = true }
+clap       = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+
+[dev-dependencies]
+lx-testkit = { workspace = true }
+insta      = { workspace = true }

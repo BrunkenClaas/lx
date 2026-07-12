@@ -1,0 +1,11 @@
+---
+source: tools/lxfixscript/tests/integration.rs
+expression: serde_json::to_string_pretty(&out).unwrap()
+---
+{
+  "script": "#!/bin/bash\necho hello",
+  "changes": [
+    "Fixed quoting"
+  ],
+  "dangerous": false
+}

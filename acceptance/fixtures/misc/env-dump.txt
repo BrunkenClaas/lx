@@ -1,0 +1,14 @@
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/home/user
+SHELL=/bin/bash
+USER=user
+LANG=en_US.UTF-8
+TERM=xterm-256color
+EDITOR=vim
+PAGER=less
+LX_API_KEY=sk-ant-api03-placeholder
+LX_MODEL=claude-sonnet-4-6
+DATABASE_URL=postgresql://localhost:5432/myapp
+NODE_ENV=production
+PORT=3000
+DEBUG=false

@@ -1,0 +1,5 @@
+INFO  server started port 8080
+ERROR disk full /var/log/app
+INFO  request processed 42ms
+ERROR connection timeout db.internal
+INFO  health check ok

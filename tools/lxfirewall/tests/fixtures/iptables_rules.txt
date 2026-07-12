@@ -1,0 +1,4 @@
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+target     prot opt source               destination
+ACCEPT     tcp  --  10.0.0.0/8           anywhere             tcp dpt:ssh
+DROP       all  --  anywhere             anywhere

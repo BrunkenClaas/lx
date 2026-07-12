@@ -1,0 +1,5 @@
+---
+source: tools/lxmock/tests/integration.rs
+expression: out.to_plain()
+---
+[{"id":1,"name":"Wireless Keyboard","price":49.99},{"id":2,"name":"USB Hub","price":24.99}]

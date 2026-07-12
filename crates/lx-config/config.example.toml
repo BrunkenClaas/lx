@@ -1,0 +1,140 @@
+# LX Coreutils configuration file
+#
+# Location:
+#   Linux/macOS: $XDG_CONFIG_HOME/lx/config.toml  (default: ~/.config/lx/config.toml)
+#   Windows:     %APPDATA%\lx\config.toml
+#
+# All values are optional; missing values fall back to the compiled default.
+# Environment variables (LX_*) override this file.
+#
+# NEVER store API keys here. Use the environment variable or OS credential store:
+#   export LX_API_KEY=sk-...                   (any shell)
+#   cmdkey /add:lx-api-key /user:lx /pass:...  (Windows Credential Manager)
+#   keyctl add user lx-api-key ... @u          (Linux kernel keyring)
+
+[llm]
+# LLM provider.
+#
+# Local (no API key needed):
+#   ollama      — Ollama local server (default; zero-config for local use)
+#   lmstudio    — LM Studio local server  (alias: lm-studio)
+#
+# Cloud — Anthropic wire format (/v1/messages):
+#   anthropic   — Anthropic Claude API
+#
+# Cloud — OpenAI-compatible wire format (/v1/chat/completions):
+#   openai      — OpenAI API
+#   gemini      — Google Gemini via OpenAI-compat endpoint  (alias: google)
+#   groq        — Groq cloud inference
+#   openrouter  — OpenRouter aggregator  (alias: open-router)
+#   mistral     — Mistral AI API
+#   deepseek    — DeepSeek API  (alias: deep-seek)
+#   azure       — Azure OpenAI  (requires base_url; uses api-key header)
+#
+provider = "ollama"             # LX_PROVIDER
+
+# Base URL override.
+# Leave empty (or omit) to use the provider's built-in default URL (shown below).
+# Set explicitly to target a custom endpoint (Azure, AWS Bedrock, Vertex AI, etc.).
+#
+# Provider defaults:
+#   ollama      → http://localhost:11434/v1
+#   lmstudio    → http://localhost:1234/v1
+#   anthropic   → https://api.anthropic.com/v1
+#   openai      → https://api.openai.com/v1
+#   gemini      → https://generativelanguage.googleapis.com/v1beta/openai/
+#   groq        → https://api.groq.com/openai/v1
+#   openrouter  → https://openrouter.ai/api/v1
+#   mistral     → https://api.mistral.ai/v1
+#   deepseek    → https://api.deepseek.com/v1
+#   azure       → (no default; must be set)
+#
+# Examples:
+#   AWS Bedrock:    https://bedrock-runtime.<region>.amazonaws.com/anthropic/v1
+#   Google Vertex:  https://<region>-aiplatform.googleapis.com/v1/projects/<proj>/...
+#   Azure OpenAI:   https://<deployment>.openai.azure.com/openai/deployments/<model>
+#
+# base_url = ""                  # LX_BASE_URL
+
+# Model identifier override.
+# Leave empty (or omit) to use the provider's built-in default model (shown below).
+# These defaults target the fast/cheap tier of each provider and WILL become
+# stale as providers release newer generations — override when needed.
+#
+# Provider defaults (fast/cheap tier):
+#   ollama      → llama3.1:8b
+#   lmstudio    → llama3.1-8b-instruct
+#   anthropic   → claude-haiku-4-5
+#   openai      → gpt-4o-mini
+#   gemini      → gemini-2.5-flash-lite
+#   groq        → llama-3.1-8b-instant
+#   openrouter  → meta-llama/llama-3.1-8b-instruct:free
+#   mistral     → mistral-small-latest
+#   deepseek    → deepseek-chat
+#   azure       → (no default; must be set)
+#
+# Local model size guide:
+#
+#   Size    Suitable for
+#   ──────  ──────────────────────────────────────────────────────────
+#   < 3 B   Not recommended — too many hallucinations and schema errors.
+#   3 B     Simple command lookups only (lxsh, lxsql, lxcurl, …).
+#           Avoid long-output tools.
+#   7–8 B   Recommended minimum. Handles nearly the full suite.
+#           llama3.1:8b (widely available) or qwen2.5:7b.
+#   14 B    Near-remote quality; requires ≥16 GB VRAM.
+#   remote  Full suite, no constraints.
+#
+# model = ""                     # LX_MODEL
+
+# HTTP request timeout in seconds. Must be > 0.
+timeout_secs = 30               # LX_TIMEOUT_SECS
+
+# Maximum retry attempts on transient errors (429, 5xx, network timeout).
+# Retries use exponential back-off; Retry-After header is honoured on 429.
+max_retries = 3                 # LX_MAX_RETRIES
+
+[limits]
+# Maximum bytes read from stdin before truncation.
+# A warning is printed to stderr when the limit is hit; the call still proceeds.
+# 524288 = 512 KiB. Set higher for large codebases, lower for interactive use.
+max_input_bytes = 524288        # LX_MAX_INPUT_BYTES  (512 KiB)
+
+# Hard token limit for LLM responses (applies globally; individual tools may
+# set a tighter per-call limit — the smaller value wins).
+max_output_tokens = 1024        # LX_MAX_OUTPUT_TOKENS
+
+# Context window note for local models (Ollama, LM Studio):
+# Each tool enforces its own per-call input cap before sending to the LLM.
+# The largest caps in the suite are ~64 000 bytes (~16k tokens). Adding the
+# system prompt (~500 tokens) and max output (1024 tokens), the worst-case
+# context needed is ~18k tokens. Set your local model's context window to
+# at least 32768 to cover every tool comfortably.
+
+[redact]
+# Secret/PII redaction applied before every LLM call on flagged tools.
+#
+# "standard" — redacts API keys, bearer tokens, and a broad set of prefixed
+#              credential formats (AWS, GitHub, GitLab, GCP, Slack, Stripe,
+#              SendGrid, Twilio, npm, Anthropic, …), generic secret/password
+#              assignments, connection-string passwords, JWTs, and emails.
+#              Each prefixed format is entropy-gated (placeholders and low-entropy
+#              examples such as AKIAIOSFODNN7EXAMPLE are left untouched).
+# "strict"   — additionally redacts file paths, hostnames, IP addresses.
+#
+# This config value controls the silent pre-LLM redaction on all flagged tools
+# (lxcommit, lxclog, lxask, …). The "aggressive" tier (niche service prefixes) is
+# NOT a config value — it is reached only via `lxredact --strict`.
+#
+# "off" is intentionally NOT accepted here. To skip redaction for a single
+# invocation use the per-tool --no-redact flag (which also prints a warning).
+level = "standard"              # LX_REDACT_LEVEL
+
+[output]
+# Output language as a BCP-47 code, or "auto" to detect from the system locale.
+# "auto" uses $LANG / LC_ALL on Linux, GetUserDefaultLocaleName on Windows,
+# falling back to "en" if detection fails.
+lang = "auto"                   # LX_LANG
+
+# ANSI colour output. "auto" = only when stdout is a TTY.
+color = "auto"                  # LX_COLOR  (auto | always | never)

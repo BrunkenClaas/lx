@@ -1,0 +1,8 @@
+src/main.rs | 4096
+src/lib.rs | 2048
+src/run.rs | 8192
+Cargo.toml | 512
+README.md | 1024
+tests/integration.rs | 3000
+tests/system.rs | 2500
+prompts/system.txt | 800

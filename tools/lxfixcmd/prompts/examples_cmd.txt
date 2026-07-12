@@ -1,0 +1,14 @@
+Input: Failed command: git psh origin main
+Output: {"command":"git push origin main","reason":"'psh' is a typo for 'push'"}
+
+Input: Failed command: ls -la
+
+Error output:
+'ls' is not recognized as an internal or external command
+Output: {"command":"dir","reason":"'ls -la' is Unix syntax; in cmd.exe use 'dir'"}
+
+Input: Failed command: cat config.toml
+
+Error output:
+'cat' is not recognized as an internal or external command
+Output: {"command":"type config.toml","reason":"'cat' is Unix; in cmd.exe use 'type' to print file contents"}

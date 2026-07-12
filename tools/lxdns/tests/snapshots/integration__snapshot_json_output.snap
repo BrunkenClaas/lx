@@ -1,0 +1,9 @@
+---
+source: tools/lxdns/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "explanation": "NXDOMAIN returned.",
+  "likely_cause": "Domain not found.",
+  "suggested_fix": "Check the domain name."
+}

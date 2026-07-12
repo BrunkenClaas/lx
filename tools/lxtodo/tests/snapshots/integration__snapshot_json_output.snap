@@ -1,0 +1,16 @@
+---
+source: tools/lxtodo/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "todos": [
+    {
+      "file": "src/main.rs",
+      "line": 10,
+      "text": "TODO: add error handling"
+    },
+    {
+      "text": "FIXME: broken on empty input"
+    }
+  ]
+}

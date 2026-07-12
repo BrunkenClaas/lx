@@ -1,0 +1,43 @@
+CONNECTED(00000003)
+depth=2 C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root CA
+verify return:1
+depth=1 C = US, O = DigiCert Inc, CN = DigiCert TLS RSA SHA256 2020 CA1
+verify return:1
+depth=0 CN = expired.badssl.com
+verify error:num=10:certificate has expired
+notAfter=Apr 11 12:00:00 2015 GMT
+verify return:1
+depth=0 CN = expired.badssl.com
+notAfter=Apr 11 12:00:00 2015 GMT
+verify return:1
+---
+Certificate chain
+ 0 s:CN = expired.badssl.com
+   i:C = US, O = DigiCert Inc, CN = DigiCert TLS RSA SHA256 2020 CA1
+   a:PKEY: rsaEncryption, 2048 (bit); sigalg: RSA-SHA256
+   v:NotBefore: Apr  9 00:00:00 2015 GMT; NotAfter : Apr 11 12:00:00 2015 GMT
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIHhTCCBm2gAwIBAgIQDACx...
+-----END CERTIFICATE-----
+subject=CN = expired.badssl.com
+issuer=C = US, O = DigiCert Inc, CN = DigiCert TLS RSA SHA256 2020 CA1
+---
+No client certificate CA names sent
+Peer signing digest: SHA256
+Peer signature type: RSA-PSS
+Server Temp Key: X25519, 253 bits
+---
+SSL handshake has read 4346 bytes and has written 401 bytes
+Verification error: certificate has expired
+---
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Server public key is 2048 bit
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 10 (certificate has expired)
+---

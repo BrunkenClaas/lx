@@ -1,0 +1,7 @@
+---
+source: tools/lxtypehint/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "code": "def greet(name: str) -> str:\n    return f'Hello {name}'"
+}

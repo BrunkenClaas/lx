@@ -1,0 +1,9 @@
+src/main.rs | 3200
+src/run.rs | 8100
+src/config.rs | 1400
+prompts/system.txt | 920
+tests/integration.rs | 4300
+tests/system.rs | 2100
+tests/fixtures/input.txt | 512
+Cargo.toml | 380
+README.md | 2800

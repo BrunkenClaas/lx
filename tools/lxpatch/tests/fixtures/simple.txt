@@ -1,0 +1,6 @@
+def greet(name):
+    msg = "Hello " + name
+    return msg
+
+result = greet("world")
+print(result)

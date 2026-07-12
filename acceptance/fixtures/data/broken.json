@@ -1,0 +1,27 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "alice",
+      "email": "alice@example.com",
+      "roles": ["admin", "user"]
+    },
+    {
+      "id": 2
+      "name": "bob",
+      "email": "bob@example.com"
+      "roles": ["user"],
+    },
+    {
+      "id": 3,
+      "name": "charlie",
+      "email": "charlie@example.com",
+      "roles": ["user", "moderator"]
+    }
+  ]
+  "metadata": {
+    "version": 1.0,
+    "timestamp": "2026-05-30T10:45:00Z",
+    "total_users": 3,
+  }
+}

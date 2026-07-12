@@ -1,0 +1,5 @@
+---
+source: tools/lxregexplain/tests/integration.rs
+expression: out.explanation
+---
+Matches one or more digits anchored to the full string.

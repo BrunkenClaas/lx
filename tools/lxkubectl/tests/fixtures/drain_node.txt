@@ -1,0 +1,1 @@
+drain node worker-1 to prepare for maintenance ignoring daemonsets

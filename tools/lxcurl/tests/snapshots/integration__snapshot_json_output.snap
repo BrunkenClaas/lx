@@ -1,0 +1,8 @@
+---
+source: tools/lxcurl/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "curl -s https://api.example.com/users",
+  "dangerous": false
+}

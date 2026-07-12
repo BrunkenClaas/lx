@@ -1,0 +1,7 @@
+---
+source: tools/lxpull/tests/integration.rs
+expression: out.to_plain(&fields)
+---
+name           email                 
+Alice Johnson  alice.johnson@acme.com
+Bob Smith      bob.smith@acme.com

@@ -1,0 +1,8 @@
+---
+source: tools/lxkubectl/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "kubectl get pods -n production -o wide",
+  "dangerous": false
+}

@@ -1,0 +1,37 @@
+Team Meeting - 2026-05-30
+
+Attendees: Alice (PM), Bob (Dev Lead), Charlie (QA), Dave (Design)
+
+Agenda Items:
+
+1. Q2 Release Status
+   - Backend API: 85% complete, targeting June 15
+   - Frontend Dashboard: 60% complete, some design reviews pending
+   - Database migration: waiting for Charlie's sign-off on test coverage
+   - DECISION: Delay launch to June 20 to include new security features
+
+2. Performance Issues
+   - Reports from users about slow load times on dashboard
+   - Investigation showed N+1 queries in user fetch endpoint
+   - Action Item: Bob to optimize queries by Friday
+   - Action Item: Charlie to write regression tests for performance
+   - PRIORITY: HIGH
+
+3. Security Audit Findings
+   - External audit flagged 3 issues
+   - SQL injection risk in legacy code (low risk, being refactored)
+   - Missing CSRF tokens on form submissions
+   - Weak password validation rules
+   - Action Item: Alice to file tickets for all three
+   - DEADLINE: All fixes must be done before launch
+
+4. Team Expansion
+   - Hiring 2 new developers in July
+   - Need to plan onboarding process
+   - Action Item: Dave to create onboarding documentation
+   - Decision: Will pair new hires with Bob and Alice for first month
+
+5. Next Steps
+   - Next meeting: June 6
+   - All action items due by end of business Friday
+   - Security fixes take priority

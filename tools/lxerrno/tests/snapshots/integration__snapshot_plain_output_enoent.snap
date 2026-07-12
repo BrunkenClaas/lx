@@ -1,0 +1,6 @@
+---
+source: tools/lxerrno/tests/integration.rs
+expression: out.to_plain()
+---
+ENOENT/2: No such file or directory — the specified path does not exist.
+  hint: Verify the path for typos and confirm the file or directory was created.

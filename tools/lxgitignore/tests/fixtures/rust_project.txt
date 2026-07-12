@@ -1,0 +1,21 @@
+Cargo.toml
+Cargo.lock
+README.md
+.github/
+  .github/workflows/
+    .github/workflows/ci.yml
+src/
+  src/main.rs
+  src/lib.rs
+  src/config.rs
+  src/error.rs
+tests/
+  tests/integration.rs
+  tests/system.rs
+  tests/fixtures/
+    tests/fixtures/sample.txt
+target/
+  target/debug/
+  target/release/
+.cargo/
+  .cargo/config.toml

@@ -1,0 +1,9 @@
+---
+source: tools/lxjq/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "expression": ".users[].name",
+  "explanation": "Extracts the name field from each element of the users array",
+  "dangerous": false
+}

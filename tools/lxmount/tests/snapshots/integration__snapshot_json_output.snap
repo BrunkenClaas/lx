@@ -1,0 +1,11 @@
+---
+source: tools/lxmount/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "mount -t ntfs-3g /dev/sdb1 /media/usb -o rw,uid=1000,gid=1000",
+  "fstab_line": "/dev/sdb1  /media/usb  ntfs-3g  rw,uid=1000,gid=1000,auto  0  0",
+  "notes": "Replace /dev/sdb1 with the actual device path from lsblk.",
+  "explanation": "",
+  "dangerous": false
+}

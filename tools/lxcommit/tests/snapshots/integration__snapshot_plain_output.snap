@@ -1,0 +1,8 @@
+---
+source: tools/lxcommit/tests/integration.rs
+assertion_line: 47
+expression: out.to_plain()
+---
+feat(auth): add token refresh method
+
+Allows callers to exchange a refresh token for a new access token.

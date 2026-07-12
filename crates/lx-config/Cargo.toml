@@ -1,0 +1,16 @@
+[package]
+name = "lx-config"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Configuration loading for LX Coreutils (flags > env > project > user > defaults)"
+
+[dependencies]
+lx-core    = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+# toml is MIT-licensed, has no unsafe code, and is the de-facto standard
+# for Cargo/Rust config file parsing. No alternative without pulling in a
+# larger dependency (e.g. serde_json would require JSON config files).
+toml       = { workspace = true }
+thiserror  = { workspace = true }

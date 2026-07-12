@@ -1,0 +1,13 @@
+---
+source: tools/lxgraph/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "chart": "Sales Q1 | ███████████░░░░░░░░░ 1200\nSales Q2 | ██████████████░░░░░░ 1500\nSales Q3 | █████████░░░░░░░░░░░ 980\nSales Q4 | ████████████████████ 2100",
+  "series": [
+    "Sales Q1",
+    "Sales Q2",
+    "Sales Q3",
+    "Sales Q4"
+  ]
+}

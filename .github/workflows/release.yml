@@ -1,0 +1,72 @@
+name: Release
+
+# Triggered by a tag of the form lxTOOL-vX.Y.Z, e.g. lxcommit-v1.2.0
+on:
+  push:
+    tags:
+      - "lx*-v*"
+
+jobs:
+  release:
+    name: Release ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # `ring` (via rustls) compiles C, so the aarch64-musl target needs its C
+    # cross-compiler pointed at explicitly (default aarch64-linux-musl-gcc does
+    # not exist; the gnu cross-gcc links musl static binaries). Unused on the
+    # x86_64 and windows targets.
+    env:
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+      CC_aarch64_unknown_linux_musl: aarch64-linux-gnu-gcc
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned to match rust-toolchain.toml — release binaries must be built with
+      # a known compiler. Bump both together (see CONTRIBUTING).
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          targets: >
+            x86_64-unknown-linux-musl
+            aarch64-unknown-linux-musl
+            x86_64-pc-windows-gnu
+
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu gcc-mingw-w64
+
+      - name: Extract tool name from tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # e.g. lxcommit-v1.2.0 → lxcommit
+          TOOL="${TAG%-v*}"
+          VERSION="${TAG#*-v}"
+          echo "tool=$TOOL" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build release binaries
+        run: |
+          TOOL="${{ steps.tag.outputs.tool }}"
+          for TARGET in x86_64-unknown-linux-musl aarch64-unknown-linux-musl x86_64-pc-windows-gnu; do
+            cargo build -p "$TOOL" --release --target "$TARGET"
+          done
+
+      - name: Collect artifacts and checksums
+        run: |
+          TOOL="${{ steps.tag.outputs.tool }}"
+          mkdir -p dist
+          for TARGET in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
+            cp "target/$TARGET/release/$TOOL" "dist/${TOOL}-${TARGET}"
+            sha256sum "dist/${TOOL}-${TARGET}" > "dist/${TOOL}-${TARGET}.sha256"
+          done
+          cp "target/x86_64-pc-windows-gnu/release/${TOOL}.exe" "dist/${TOOL}-x86_64-pc-windows-gnu.exe"
+          sha256sum "dist/${TOOL}-x86_64-pc-windows-gnu.exe" > "dist/${TOOL}-x86_64-pc-windows-gnu.exe.sha256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

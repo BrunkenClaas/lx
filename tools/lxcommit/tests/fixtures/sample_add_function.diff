@@ -1,0 +1,17 @@
+diff --git a/src/auth.rs b/src/auth.rs
+index 1234567..abcdefg 100644
+--- a/src/auth.rs
++++ b/src/auth.rs
+@@ -12,6 +12,14 @@ impl Auth {
+     pub fn authenticate(&self, creds: &Credentials) -> Result<Token, AuthError> {
+         self.provider.auth(creds)
+     }
++
++    /// Exchange a refresh token for a new access token.
++    pub fn refresh_token(&self) -> Result<Token, AuthError> {
++        if self.refresh.is_empty() {
++            return Err(AuthError::NoRefreshToken);
++        }
++        self.provider.exchange(&self.refresh)
++    }
+ }

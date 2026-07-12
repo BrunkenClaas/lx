@@ -1,0 +1,7 @@
+---
+source: tools/lxgitignore/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "content": "# Build artifacts\n/target/\n\n# Editor files\n.idea/\n.vscode/\n"
+}

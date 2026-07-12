@@ -1,0 +1,9 @@
+---
+source: tools/lxexplain/tests/integration.rs
+assertion_line: 41
+expression: out.to_plain()
+---
+Extracts files from a tar archive.
+  • '-x' extracts
+  • '-z' decompresses with gzip
+  • '-f' names the archive

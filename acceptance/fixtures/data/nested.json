@@ -1,0 +1,54 @@
+{
+  "company": {
+    "name": "TechCorp",
+    "departments": {
+      "engineering": {
+        "id": "eng-001",
+        "manager": {
+          "id": "u-001",
+          "name": "alice",
+          "email": "alice@techcorp.com",
+          "contact": {
+            "phone": "555-1234",
+            "address": "123 Tech St"
+          }
+        },
+        "teams": [
+          {
+            "name": "backend",
+            "members": [
+              {
+                "id": "u-002",
+                "name": "bob",
+                "email": "bob@techcorp.com"
+              },
+              {
+                "id": "u-003",
+                "name": "charlie",
+                "email": "charlie@techcorp.com"
+              }
+            ]
+          },
+          {
+            "name": "frontend",
+            "members": [
+              {
+                "id": "u-004",
+                "name": "dave",
+                "email": "dave@techcorp.com"
+              }
+            ]
+          }
+        ]
+      },
+      "sales": {
+        "id": "sales-001",
+        "manager": {
+          "id": "u-005",
+          "name": "eve",
+          "email": "eve@techcorp.com"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+abc1234 feat(auth): add JWT token refresh endpoint
+def5678 fix(api): handle null user in response serializer
+ghi9012 chore: update dependencies (axios 1.4, jest 29)
+jkl3456 feat(ui): add dark mode toggle to settings page
+mno7890 fix(db): fix N+1 query in user list endpoint
+pqr1234 test(auth): add integration tests for login flow
+stu5678 docs: update API reference for /users endpoint
+vwx9012 refactor(models): extract UserProfile to separate module
+yza3456 fix(auth): prevent session fixation on login
+bcd7890 feat(billing): add Stripe webhook handler

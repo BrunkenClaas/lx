@@ -1,0 +1,6 @@
+---
+source: tools/lxkill/tests/integration.rs
+assertion_line: 78
+expression: out.to_plain()
+---
+kill $(lsof -ti:3000)

@@ -1,0 +1,6 @@
+---
+source: tools/lxtodo/tests/integration.rs
+expression: out.to_plain()
+---
+src/main.rs:10: TODO: add error handling
+FIXME: broken on empty input

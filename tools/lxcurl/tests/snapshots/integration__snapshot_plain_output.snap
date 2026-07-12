@@ -1,0 +1,5 @@
+---
+source: tools/lxcurl/tests/integration.rs
+expression: out.to_plain()
+---
+curl -s https://api.example.com/users

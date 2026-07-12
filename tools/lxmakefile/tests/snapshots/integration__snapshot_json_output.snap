@@ -1,0 +1,8 @@
+---
+source: tools/lxmakefile/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "content": ".PHONY: build\nbuild:\n\tcargo build --release",
+  "dangerous": false
+}

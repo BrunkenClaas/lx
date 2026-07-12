@@ -1,0 +1,9 @@
+[server]
+host = "0.0.0.0"
+port = 99999
+port = 8080
+
+[database]
+endpoint = "localhost:5432"
+max_connections = -1
+timeout =

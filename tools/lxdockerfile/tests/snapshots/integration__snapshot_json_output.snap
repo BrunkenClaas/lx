@@ -1,0 +1,8 @@
+---
+source: tools/lxdockerfile/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "content": "FROM node:18-alpine\nWORKDIR /app\nCOPY . .\nRUN npm install\nCMD [\"node\", \"index.js\"]",
+  "dangerous": false
+}

@@ -1,0 +1,1 @@
+POST {"name":"Alice","role":"admin"} to https://api.example.com/users with Content-Type application/json

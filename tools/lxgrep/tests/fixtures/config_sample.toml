@@ -1,0 +1,16 @@
+[server]
+host = "localhost"
+port = 8080
+timeout_secs = 30
+max_connections = 100
+
+[database]
+host = "db.example.com"
+port = 5432
+name = "myapp"
+pool_size = 10
+connection_timeout_ms = 5000
+
+[logging]
+level = "info"
+output = "stderr"

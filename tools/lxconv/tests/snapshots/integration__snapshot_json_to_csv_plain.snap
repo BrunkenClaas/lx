@@ -1,0 +1,7 @@
+---
+source: tools/lxconv/tests/integration.rs
+expression: out.to_plain()
+---
+name,score
+Alice,95
+Bob,80

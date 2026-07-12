@@ -1,0 +1,8 @@
+---
+source: tools/lxrsync/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "rsync -avz /home/user/docs/ backup@remote:/backup/docs/",
+  "dangerous": false
+}

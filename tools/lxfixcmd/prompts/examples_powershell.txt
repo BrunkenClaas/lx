@@ -1,0 +1,14 @@
+Input: Failed command: git psh origin main
+Output: {"command":"git push origin main","reason":"'psh' is a typo for 'push'"}
+
+Input: Failed command: ls -la
+
+Error output:
+(no error — command ran but output format was unexpected)
+Output: {"command":"Get-ChildItem -Force","reason":"'ls -la' is bash syntax; the PowerShell equivalent is Get-ChildItem -Force"}
+
+Input: Failed command: cat config.toml
+
+Error output:
+The term 'cat' is not recognized as the name of a cmdlet
+Output: {"command":"Get-Content config.toml","reason":"'cat' is a Unix alias; in PowerShell use Get-Content"}

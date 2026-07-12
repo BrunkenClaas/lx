@@ -1,0 +1,6 @@
+2024-01-15 10:23:45 ERROR Request failed: GET https://api.internal.example.com/data?token=ghp_16C7e42F292c6912E7710c838347Ae298T2z9r4&user=alice
+2024-01-15 10:23:45 ERROR StatusCode: 401 Unauthorized
+2024-01-15 10:23:46 ERROR Retrying with key AKIAIOSFODNN7EXAMPLE: connection refused
+2024-01-15 10:23:47 ERROR NullPointerException at com.example.ApiClient.fetch(ApiClient.java:42)
+2024-01-15 10:23:47 ERROR     at com.example.DataService.load(DataService.java:88)
+2024-01-15 10:23:47 ERROR Stack trace ends

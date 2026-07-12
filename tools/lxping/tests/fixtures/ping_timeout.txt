@@ -1,0 +1,5 @@
+PING google.com (142.250.80.46) 56(84) bytes of data.
+Request timeout for icmp_seq 0
+Request timeout for icmp_seq 1
+--- google.com ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1001ms

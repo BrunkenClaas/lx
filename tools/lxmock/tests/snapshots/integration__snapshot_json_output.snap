@@ -1,0 +1,8 @@
+---
+source: tools/lxmock/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "data": "[{\"id\":1,\"name\":\"Wireless Keyboard\",\"price\":49.99},{\"id\":2,\"name\":\"USB Hub\",\"price\":24.99}]",
+  "format": "json"
+}

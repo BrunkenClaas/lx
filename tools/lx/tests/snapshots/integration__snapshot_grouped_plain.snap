@@ -1,0 +1,66 @@
+---
+source: tools/lx/tests/integration.rs
+expression: out
+---
+Text & Analysis
+  lxexplain     explain anything        lxsum         summarise text      
+  lxtl          translate text          lxclass       classify input      
+  lxpull        extract fields          lxproof       fix grammar         
+
+Code & Development
+  lxcode        generate code           lxdebug       debug error         
+  lxdoc         write docstrings        lxregex       regex pattern       
+  lxregexplain  explain regex           lxsql         generate SQL        
+  lxsh          shell command           lxtypehint    add type hints      
+  lxrename      rename script           lxfixcmd      fix command         
+  lxfixscript   fix shell script        lxpatch       generate patch      
+
+Command Generation
+  lxjq          jq expression           lxcurl        curl command        
+  lxsed         sed/awk one-liner       lxffmpeg      ffmpeg command      
+  lxkubectl     kubectl command         lxdockercmd   docker command      
+  lxrsync       rsync command           lxmount       mount command       
+  lxkill        kill process            lxcron        crontab line        
+  lxfirewall    firewall rule           lxip          ip command          
+  lxprintf      printf format       
+
+Filesystem & Data
+  lxfind        semantic file search    lxgrep        semantic grep       
+  lxdigest      summarise directory     lxcsv         query CSV           
+  lxjson        repair JSON             lxconv        convert format      
+  lxtable       text to table           lxmock        generate mock data  
+
+Search & Knowledge
+  lxask         answer question         lxman         plain-language man  
+  lxerrno       explain error code  
+
+Productivity & Comms
+  lxdraft       draft email/doc         lxcommit      commit message      
+  lxclog        changelog               lxpr          PR description      
+  lxstandup     standup notes           lxtodo        extract TODOs       
+  lxnotes       structure notes         lxgitignore   generate .gitignore 
+  lxdockerfile  generate Dockerfile     lxmakefile    generate Makefile   
+
+Docs & Format
+  lxmd          format as Markdown      lxmermaid     Mermaid diagram     
+  lxdiff        explain diff            lxgraph       ASCII chart         
+
+Security
+  lxsecret      scan for secrets        lxredact      redact secrets      
+  lxperm        explain permissions     lxcve         explain CVE         
+  lxcert        explain TLS cert        lxjwt         decode JWT          
+  lxchmod       safe permissions    
+
+Network & System
+  lxlog         analyse logs            lxconf        check config file   
+  lxport        explain port        
+
+Diagnostics
+  lxdns         diagnose DNS            lxssl         diagnose TLS        
+  lxping        interpret ping          lxhttp        explain HTTP failure
+
+Meta & Shell
+  lxundo        undo command        
+
+Web
+  lxurl         fetch and answer

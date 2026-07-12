@@ -1,0 +1,8 @@
+index.html | 8192
+styles/main.css | 4096
+styles/reset.css | 512
+scripts/app.js | 16384
+scripts/utils.js | 2048
+images/logo.png | 51200
+package.json | 1024
+webpack.config.js | 2048

@@ -1,0 +1,21 @@
+# Clean file — no secrets, used to verify zero false positives.
+
+# Ordinary configuration
+APP_NAME=my-app
+LOG_LEVEL=debug
+CACHE_TTL=300
+MAX_RETRIES=3
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=myapp_db
+
+# Feature flags
+FEATURE_NEW_UI=true
+FEATURE_ANALYTICS=false
+
+# A URL without embedded credentials
+API_BASE_URL=https://api.example.com/v1
+
+# Short strings that look like they could be secrets but are too short
+KEY=short
+TOKEN=tiny

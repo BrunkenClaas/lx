@@ -1,0 +1,16 @@
+Team Directory — Q1 2024
+
+Alice Johnson
+Email: alice.johnson@acme.com
+Phone: +1-555-0101
+Department: Engineering
+
+Bob Smith
+Email: bob.smith@acme.com
+Phone: +1-555-0102
+Department: Marketing
+
+Carol White
+Email: carol.white@acme.com
+Phone: +1-555-0103
+Department: Engineering

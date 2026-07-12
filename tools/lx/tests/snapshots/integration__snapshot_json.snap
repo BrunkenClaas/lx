@@ -1,0 +1,10 @@
+---
+source: tools/lx/tests/integration.rs
+expression: first
+---
+{
+  "category": "Text & Analysis",
+  "name": "lxexplain",
+  "purpose": "Explain a command, error, or code snippet in plain language",
+  "short": "explain anything"
+}

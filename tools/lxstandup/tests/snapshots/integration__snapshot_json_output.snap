@@ -1,0 +1,14 @@
+---
+source: tools/lxstandup/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "done": [
+    "Added export endpoint for reports",
+    "Fixed null pointer in data parser"
+  ],
+  "next": [
+    "Review open pull requests"
+  ],
+  "blockers": []
+}

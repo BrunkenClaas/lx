@@ -1,0 +1,27 @@
+[package]
+name = "lx"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "LX Coreutils umbrella command — browse and discover all 72 tools"
+
+[[bin]]
+name = "lx"
+path = "src/main.rs"
+
+[lib]
+name = "lx"
+path = "src/lib.rs"
+
+[dependencies]
+lx-core    = { workspace = true }
+lx-config  = { workspace = true }
+lx-llm     = { workspace = true }
+clap       = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+toml       = { workspace = true }
+
+[dev-dependencies]
+lx-testkit = { workspace = true }
+insta      = { workspace = true }

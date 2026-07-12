@@ -1,0 +1,14 @@
+---
+source: tools/lxmd/tests/integration.rs
+expression: out.to_plain()
+---
+# Meeting Notes
+
+## Attendees
+
+- Alice
+- Bob
+
+## Action Items
+
+- Alice will update the plan

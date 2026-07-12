@@ -1,0 +1,5 @@
+---
+source: tools/lxcve/tests/integration.rs
+expression: out.to_plain()
+---
+[HIGH] openssl 0.10.29 (CVE-2022-0778): Infinite loop in BN_mod_sqrt() reachable when parsing certificates with invalid explicit elliptic curve parameters. [confidence: low]

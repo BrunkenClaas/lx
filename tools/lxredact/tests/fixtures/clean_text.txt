@@ -1,0 +1,10 @@
+This is a clean text file with no secrets or PII.
+
+cargo build --release
+ls -la /tmp
+echo "Hello, world!"
+
+The quick brown fox jumps over the lazy dog.
+PORT=8080
+LOG_LEVEL=debug
+APP_NAME=my-service

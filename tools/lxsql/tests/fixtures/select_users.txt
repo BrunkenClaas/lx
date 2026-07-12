@@ -1,0 +1,1 @@
+get all users with their email addresses and registration date, ordered by registration date descending

@@ -1,0 +1,10 @@
+---
+source: tools/lxurl/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "url": "https://example.com",
+  "title": "Example Domain",
+  "answer": "This domain is for illustrative examples.",
+  "truncated": false
+}

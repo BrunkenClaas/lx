@@ -1,0 +1,1 @@
+3 products with id, name, price as JSON

@@ -1,0 +1,4 @@
+644 /var/www/html/index.html
+755 /usr/local/bin/myapp
+600 /home/alice/.ssh/id_rsa
+640 /etc/app/config.ini

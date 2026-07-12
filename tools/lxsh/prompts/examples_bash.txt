@@ -1,0 +1,24 @@
+Input: Target shell: bash
+
+list all files including hidden ones sorted by modification time
+Output: {"command":"ls -lat","shell":"bash","dangerous":false}
+
+Input: Target shell: bash
+
+find all .log files older than 30 days and delete them
+Output: {"command":"find /var/log -name '*.log' -mtime +30 -delete","shell":"bash","dangerous":true}
+
+Input: Target shell: bash
+
+compress the src directory into src.tar.gz
+Output: {"command":"tar -czf src.tar.gz src/","shell":"bash","dangerous":false}
+
+Input: Target shell: bash
+
+show disk usage of current directory sorted by size
+Output: {"command":"du -sh * | sort -rh | head -20","shell":"bash","dangerous":false}
+
+Input: Target shell: bash
+
+find all files larger than 100MB modified this week
+Output: {"command":"find . -size +100M -mtime -7","shell":"bash","dangerous":false}

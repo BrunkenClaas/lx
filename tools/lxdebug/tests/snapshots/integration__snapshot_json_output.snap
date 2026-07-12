@@ -1,0 +1,9 @@
+---
+source: tools/lxdebug/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "cause": "The application cannot find its configuration file.",
+  "fix": "Create the missing config file or verify the path.",
+  "command": "cp config.json.example config.json"
+}

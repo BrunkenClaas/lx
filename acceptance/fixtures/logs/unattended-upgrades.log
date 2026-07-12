@@ -1,0 +1,41 @@
+2026-05-30 03:15:22.345 DEBUG: unattended-upgrades starting
+2026-05-30 03:15:23.102 INFO: Checking for available upgrades
+2026-05-30 03:15:24.567 INFO: Found 15 upgradeable packages
+2026-05-30 03:15:25.891 DEBUG: Downloading: libc6 (2.33-2 -> 2.34-1)
+2026-05-30 03:15:28.234 DEBUG: Downloading: openssl (1.1.1-4 -> 1.1.1-5)
+2026-05-30 03:15:31.456 DEBUG: Downloading: openssh-client (7.4-1 -> 7.5-1)
+2026-05-30 03:15:34.789 INFO: Downloaded 3 packages successfully
+2026-05-30 03:15:35.012 DEBUG: Installing: libc6 (2.33-2 -> 2.34-1)
+2026-05-30 03:15:37.345 INFO: libc6 installed successfully
+2026-05-30 03:15:38.678 DEBUG: Installing: openssl (1.1.1-4 -> 1.1.1-5)
+2026-05-30 03:15:40.901 WARNING: openssl installation requires manual intervention - skipping
+2026-05-30 03:15:42.234 DEBUG: Installing: openssh-client (7.4-1 -> 7.5-1)
+2026-05-30 03:15:44.567 INFO: openssh-client installed successfully
+2026-05-30 03:15:46.890 DEBUG: Downloading: curl (7.68.0-1 -> 7.72.0-1)
+2026-05-30 03:15:49.123 DEBUG: Downloading: wget (1.20.3-1 -> 1.21.1-1)
+2026-05-30 03:15:52.456 DEBUG: Downloading: git (1:2.25.1-1 -> 1:2.32.0-1)
+2026-05-30 03:15:55.789 DEBUG: Downloading: gcc (4:9.3.0-1 -> 4:10.2.0-1)
+2026-05-30 03:15:59.012 INFO: Downloaded 4 additional packages
+2026-05-30 03:16:00.345 DEBUG: Installing: curl (7.68.0-1 -> 7.72.0-1)
+2026-05-30 03:16:02.678 INFO: curl installed successfully
+2026-05-30 03:16:04.901 DEBUG: Installing: wget (1.20.3-1 -> 1.21.1-1)
+2026-05-30 03:16:07.234 INFO: wget installed successfully
+2026-05-30 03:16:09.567 DEBUG: Installing: git (1:2.25.1-1 -> 1:2.32.0-1)
+2026-05-30 03:16:12.890 INFO: git installed successfully
+2026-05-30 03:16:15.123 DEBUG: Installing: gcc (4:9.3.0-1 -> 4:10.2.0-1)
+2026-05-30 03:16:18.456 WARNING: gcc installation requires restart of build system
+2026-05-30 03:16:20.789 INFO: Skipping gcc due to warning requirement
+2026-05-30 03:16:23.012 DEBUG: Checking for additional security updates
+2026-05-30 03:16:24.345 INFO: Found 2 security-critical packages
+2026-05-30 03:16:26.678 DEBUG: Downloading: openssl (1.1.1-4 -> 1.1.1-5) [SECURITY]
+2026-05-30 03:16:29.901 DEBUG: Downloading: openssh-server (7.4-1 -> 7.5-1) [SECURITY]
+2026-05-30 03:16:33.234 INFO: Downloaded security packages
+2026-05-30 03:16:35.567 DEBUG: Installing: openssh-server (7.4-1 -> 7.5-1) [SECURITY]
+2026-05-30 03:16:38.890 INFO: openssh-server installed successfully
+2026-05-30 03:16:41.123 INFO: All security upgrades applied
+2026-05-30 03:16:44.456 DEBUG: Cleaning up temporary files
+2026-05-30 03:16:46.789 INFO: Cleanup completed
+2026-05-30 03:16:49.012 INFO: Unattended upgrades completed successfully
+2026-05-30 03:16:50.345 INFO: Total packages upgraded: 8
+2026-05-30 03:16:52.678 INFO: Total packages skipped: 2
+2026-05-30 03:16:54.901 INFO: Session duration: 29.5s

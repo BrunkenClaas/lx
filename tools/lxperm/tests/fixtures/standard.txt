@@ -1,0 +1,6 @@
+total 32
+-rw-r--r--  1 alice staff   512 Jan  1 12:00 config.txt
+-rw-r--r--  1 alice staff  1024 Jan  1 12:00 readme.md
+-rwxr-xr-x  1 alice staff  8192 Jan  1 12:00 app
+drwxr-xr-x  2 alice staff  4096 Jan  1 12:00 src
+drwxr-xr-x  2 alice staff  4096 Jan  1 12:00 tests

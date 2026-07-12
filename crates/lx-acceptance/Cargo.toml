@@ -1,0 +1,24 @@
+[package]
+name = "lx-acceptance"
+version = "1.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Dev-only extended, data-driven acceptance harness for LX Coreutils"
+publish = false
+
+[[bin]]
+name = "lx-acceptance"
+path = "src/main.rs"
+
+[dependencies]
+clap       = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+toml       = { workspace = true }
+regex      = { workspace = true }
+once_cell  = { workspace = true }
+lx-testkit = { workspace = true }
+# Used only by judge.rs for the optional --judge sanity-gate.
+lx-llm     = { workspace = true }
+lx-config  = { workspace = true }
+lx-core    = { workspace = true }

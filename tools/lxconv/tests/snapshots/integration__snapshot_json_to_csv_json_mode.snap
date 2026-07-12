@@ -1,0 +1,8 @@
+---
+source: tools/lxconv/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "content": "name,score\nAlice,95\nBob,80\n",
+  "method": "local"
+}

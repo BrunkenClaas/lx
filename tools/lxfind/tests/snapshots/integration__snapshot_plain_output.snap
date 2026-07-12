@@ -1,0 +1,6 @@
+---
+source: tools/lxfind/tests/integration.rs
+expression: out.to_plain()
+---
+src/backup.sh
+scripts/db_dump.sh

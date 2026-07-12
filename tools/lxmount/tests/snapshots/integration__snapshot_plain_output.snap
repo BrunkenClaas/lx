@@ -1,0 +1,5 @@
+---
+source: tools/lxmount/tests/integration.rs
+expression: out.to_plain()
+---
+mount -t ntfs-3g /dev/sdb1 /media/usb -o rw,uid=1000,gid=1000

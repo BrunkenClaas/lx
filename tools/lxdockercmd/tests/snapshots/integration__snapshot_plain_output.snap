@@ -1,0 +1,5 @@
+---
+source: tools/lxdockercmd/tests/integration.rs
+expression: out.to_plain()
+---
+docker run -d -p 8080:80 --name nginx-web nginx:latest

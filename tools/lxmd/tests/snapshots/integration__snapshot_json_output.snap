@@ -1,0 +1,7 @@
+---
+source: tools/lxmd/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "markdown": "# Meeting Notes\n\n## Attendees\n\n- Alice\n- Bob\n\n## Action Items\n\n- Alice will update the plan"
+}

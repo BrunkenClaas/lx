@@ -1,0 +1,14 @@
+---
+source: tools/lxsum/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "tldr": "CI deployment succeeded for v3.7.2 after a brief health-check delay",
+  "bullets": [
+    "Unit tests passed (847/847)",
+    "Docker image built and pushed to registry",
+    "Staging health check was slow but recovered",
+    "Smoke tests passed (12/12)",
+    "Production deployment complete"
+  ]
+}

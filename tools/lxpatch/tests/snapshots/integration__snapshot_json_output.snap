@@ -1,0 +1,9 @@
+---
+source: tools/lxpatch/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "diff": "--- a/file\n+++ b/file\n@@ -1 +1 @@\n-x = 1\n+y = 1",
+  "summary": "Renamed x to y.",
+  "dangerous": false
+}

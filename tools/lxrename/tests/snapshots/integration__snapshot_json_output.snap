@@ -1,0 +1,18 @@
+---
+source: tools/lxrename/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "renames": [
+    {
+      "from": "testFoo.py",
+      "to": "test_foo.py"
+    },
+    {
+      "from": "testBar.py",
+      "to": "test_bar.py"
+    }
+  ],
+  "script": "mv \"testFoo.py\" \"test_foo.py\"\nmv \"testBar.py\" \"test_bar.py\"",
+  "dangerous": false
+}

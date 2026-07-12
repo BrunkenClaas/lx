@@ -1,0 +1,11 @@
+---
+source: tools/lxkill/tests/integration.rs
+assertion_line: 86
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "kill $(lsof -ti:3000)",
+  "target": "process on port 3000",
+  "reason": "lsof returns the PID then kill sends SIGTERM",
+  "dangerous": false
+}

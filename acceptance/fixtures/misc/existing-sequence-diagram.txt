@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant User
+    participant App
+    participant AuthService
+    User->>App: Submit username and password
+    App->>AuthService: Validate credentials
+    AuthService-->>App: Credentials OK
+    App->>User: Prompt for 2FA code
+    User->>App: Submit 2FA code
+    App->>AuthService: Verify 2FA code
+    AuthService-->>App: 2FA verified
+    App-->>User: Login successful

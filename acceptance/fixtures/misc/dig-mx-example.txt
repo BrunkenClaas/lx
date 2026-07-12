@@ -1,0 +1,33 @@
+; <<>> DiG 9.18.1-1ubuntu1.3-Ubuntu <<>> MX example.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 47291
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;example.com.			IN	MX
+
+;; ANSWER SECTION:
+example.com.		3600	IN	MX	10 mail.example.com.
+
+;; Query time: 34 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
+;; WHEN: Fri Jun 06 13:00:00 UTC 2026
+;; MSG SIZE  rcvd: 62
+
+; <<>> DiG 9.18.1-1ubuntu1.3-Ubuntu <<>> A mail.example.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 51120
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;mail.example.com.		IN	A
+
+;; AUTHORITY SECTION:
+example.com.		300	IN	SOA	ns1.example.com. hostmaster.example.com. 2026060601 7200 3600 1209600 300
+
+;; Query time: 31 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
+;; WHEN: Fri Jun 06 13:00:01 UTC 2026
+;; MSG SIZE  rcvd: 98

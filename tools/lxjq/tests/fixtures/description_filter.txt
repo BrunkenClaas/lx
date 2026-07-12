@@ -1,0 +1,1 @@
+filter active users and return their email addresses

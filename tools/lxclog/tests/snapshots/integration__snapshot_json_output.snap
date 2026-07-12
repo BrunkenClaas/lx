@@ -1,0 +1,23 @@
+---
+source: tools/lxclog/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "entries": [
+    {
+      "version": "Unreleased",
+      "added": [
+        "Add token refresh endpoint",
+        "Add --json output flag to all commands"
+      ],
+      "changed": [
+        "Bump serde to 1.0.200",
+        "Extract whitespace-skipping helper in parser"
+      ],
+      "fixed": [
+        "Handle null response from upstream",
+        "Resolve config file not found on Windows"
+      ]
+    }
+  ]
+}

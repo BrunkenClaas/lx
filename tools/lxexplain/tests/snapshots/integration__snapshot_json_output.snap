@@ -1,0 +1,13 @@
+---
+source: tools/lxexplain/tests/integration.rs
+assertion_line: 49
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "summary": "Extracts files from a tar archive.",
+  "details": [
+    "'-x' extracts",
+    "'-z' decompresses with gzip",
+    "'-f' names the archive"
+  ]
+}

@@ -1,0 +1,11 @@
+Yesterday:
+- Completed the user profile page redesign
+- Merged PR #42 (add search feature)
+- Fixed the broken pagination on the dashboard
+
+Today:
+- Will review open pull requests from the team
+- Continue working on the notification system
+
+Blockers:
+- Waiting on design approval for the new onboarding flow before I can proceed with implementation

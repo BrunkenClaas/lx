@@ -1,0 +1,5 @@
+---
+source: tools/lxgrep/tests/integration.rs
+expression: out.to_plain()
+---
+src/main.rs:14:     Err(e) => eprintln!("error: {e}"),

@@ -1,0 +1,18 @@
+meeting notes jan 15 2025
+attendees: alice, bob, carol
+location: conference room b
+
+agenda
+- review project plan
+- discuss blockers
+- next steps
+
+discussion
+the team reviewed progress on the data pipeline. alice noted that the schema migration is complete. bob raised a concern about performance under high load. carol confirmed the deployment timeline remains on track.
+
+action items
+alice will update the project plan by friday
+bob needs to profile the query performance and report back next week
+carol will schedule the deployment for saturday morning
+
+next meeting: jan 22 at 10am

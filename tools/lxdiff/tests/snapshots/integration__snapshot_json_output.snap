@@ -1,0 +1,12 @@
+---
+source: tools/lxdiff/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "summary": "Adds a bounded cache with eviction support.",
+  "changes": [
+    "A max_entries field is added to the Cache struct to limit its size.",
+    "A with_capacity constructor allows callers to set the entry limit.",
+    "The insert method evicts the oldest entry when the cache is full."
+  ]
+}

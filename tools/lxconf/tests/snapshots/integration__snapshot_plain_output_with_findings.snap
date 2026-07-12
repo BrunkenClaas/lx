@@ -1,0 +1,8 @@
+---
+source: tools/lxconf/tests/integration.rs
+expression: out.to_plain()
+---
+[error] line 3: port value 99999 is outside the valid range 1-65535
+  hint: Use a port number between 1 and 65535
+[warning] line 4: duplicate key port overrides the earlier definition on line 3
+  hint: Remove the duplicate key

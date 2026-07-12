@@ -1,0 +1,5 @@
+2024-05-10 12:00:00 INFO  Deployment started
+2024-05-10 12:00:01 INFO  Connecting to remote service
+2024-05-10 12:00:02 INFO  Using DEPLOY_KEY=sk-abcdefghijklmnopqrstuvwxyz123456
+2024-05-10 12:00:03 INFO  Connection established
+2024-05-10 12:00:04 ERROR Failed to deploy: permission denied

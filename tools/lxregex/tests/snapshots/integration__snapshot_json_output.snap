@@ -1,0 +1,9 @@
+---
+source: tools/lxregex/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "pattern": "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
+  "explanation": "Matches a full email address.",
+  "dangerous": false
+}

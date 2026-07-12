@@ -1,0 +1,9 @@
+---
+source: tools/lxerrno/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "code": "HTTP 404",
+  "meaning": "Not Found — the requested resource could not be found on the server.",
+  "hint": "Verify the URL path, check for typos, and confirm the resource exists."
+}

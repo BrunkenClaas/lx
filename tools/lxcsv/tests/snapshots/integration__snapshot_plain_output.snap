@@ -1,0 +1,5 @@
+---
+source: tools/lxcsv/tests/integration.rs
+expression: out.to_plain()
+---
+Widget E has the highest revenue at 9300.

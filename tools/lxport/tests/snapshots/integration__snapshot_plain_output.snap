@@ -1,0 +1,5 @@
+---
+source: tools/lxport/tests/integration.rs
+expression: out.to_plain()
+---
+Port 22 is the standard SSH port used for remote login. It is a frequent target for brute-force attacks.

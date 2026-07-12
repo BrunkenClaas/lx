@@ -1,0 +1,9 @@
+---
+source: tools/lxsed/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "awk '{print $2}'",
+  "tool": "awk",
+  "dangerous": false
+}

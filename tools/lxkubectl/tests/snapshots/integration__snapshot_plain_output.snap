@@ -1,0 +1,5 @@
+---
+source: tools/lxkubectl/tests/integration.rs
+expression: out.to_plain()
+---
+kubectl get pods -n production -o wide

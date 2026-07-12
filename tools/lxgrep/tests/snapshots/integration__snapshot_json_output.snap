@@ -1,0 +1,14 @@
+---
+source: tools/lxgrep/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "matches": [
+    {
+      "file": "src/main.rs",
+      "line": 14,
+      "snippet": "    Err(e) => eprintln!(\"error: {e}\"),"
+    }
+  ],
+  "capped": false
+}

@@ -1,0 +1,69 @@
+diff --git a/src/api/users.rs b/src/api/users.rs
+index 1234567..abcdefg 100644
+--- a/src/api/users.rs
++++ b/src/api/users.rs
+@@ -10,6 +10,15 @@ pub struct User {
+     email: String,
+     created_at: DateTime<Utc>,
+ }
++pub struct UserProfile {
++    user_id: String,
++    bio: String,
++    avatar_url: Option<String>,
++    preferences: UserPreferences,
++}
++pub struct UserPreferences {
++    theme: String,
++    notifications_enabled: bool,
++}
+
+ impl User {
+     pub fn new(name: &str, email: &str) -> Self {
+@@ -25,6 +34,22 @@ impl User {
+         Ok(())
+     }
+
++    pub fn get_profile(&self) -> Result<UserProfile> {
++        let profile = db::get_user_profile(&self.id)?;
++        Ok(profile)
++    }
++
++    pub fn update_profile(&mut self, bio: &str, avatar: Option<String>) -> Result<()> {
++        self.profile.bio = bio.to_string();
++        self.profile.avatar_url = avatar;
++        self.save()?;
++        Ok(())
++    }
++
++    pub fn get_preferences(&self) -> Result<UserPreferences> {
++        Ok(self.profile.preferences.clone())
++    }
++
+     pub fn delete(&self) -> Result<()> {
+         db::delete_user(&self.id)?;
+         Ok(())
+
+diff --git a/src/handlers/auth.rs b/src/handlers/auth.rs
+index 7654321..fedcbag 100644
+--- a/src/handlers/auth.rs
++++ b/src/handlers/auth.rs
+@@ -1,5 +1,6 @@
+ use actix_web::{web, HttpResponse};
+ use crate::api::User;
++use crate::api::UserProfile;
+
+ pub async fn login(
+     req: web::Json<LoginRequest>,
+@@ -15,6 +16,12 @@ pub async fn login(
+     Ok(HttpResponse::Ok().json(user))
+ }
+
++pub async fn get_user_profile(
++    user_id: web::Path<String>,
++) -> Result<HttpResponse> {
++    let profile = User::get_profile(&user_id)?;
++    Ok(HttpResponse::Ok().json(profile))
++}
+
+ pub async fn logout(req: web::HttpRequest) -> Result<HttpResponse> {
+     // Clear session

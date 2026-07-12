@@ -1,0 +1,1 @@
+mount a USB drive at /media/usb read-write

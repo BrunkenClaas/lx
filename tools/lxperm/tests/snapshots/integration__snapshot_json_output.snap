@@ -1,0 +1,14 @@
+---
+source: tools/lxperm/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "items": [
+    {
+      "perm": "-rwxr-xr-x",
+      "file": "deploy.sh",
+      "risk": "warning",
+      "explanation": "Owner can read, write, and execute. Group and others can read and execute. This script is world-executable — anyone on the system can run it."
+    }
+  ]
+}

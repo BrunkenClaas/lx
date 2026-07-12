@@ -1,0 +1,21 @@
+---
+source: tools/lxnotes/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "sections": [
+    {
+      "title": "Decisions",
+      "content": [
+        "Deploy on Thursdays at 9pm",
+        "Ops approval required"
+      ]
+    },
+    {
+      "title": "Action Items",
+      "content": [
+        "John to finish dashboard by Friday"
+      ]
+    }
+  ]
+}

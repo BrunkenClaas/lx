@@ -1,0 +1,43 @@
+name: Eval (manual)
+
+# Runs the eval tests, which make REAL LLM calls and spend tokens against
+# secrets.LX_API_KEY. Intentionally manual-only — there is no schedule, so this
+# never runs (and never bills) on its own. Trigger it by hand from the Actions
+# tab ("Run workflow") when you want a full eval, e.g. before cutting a release.
+on:
+  workflow_dispatch:
+
+jobs:
+  eval:
+    name: Eval tests
+    runs-on: ubuntu-latest
+    env:
+      LX_API_KEY: ${{ secrets.LX_API_KEY }}
+      LX_MODEL:   ${{ vars.LX_EVAL_MODEL }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify API key is set
+        run: |
+          if [ -z "${LX_API_KEY}" ]; then
+            echo "::error::LX_API_KEY secret is not set — eval tests need a provider key."
+            echo "Set it under Settings → Secrets and variables → Actions, then re-run."
+            exit 1
+          fi
+
+      # Pinned to match rust-toolchain.toml. Bump both together (see CONTRIBUTING).
+      - uses: dtolnay/rust-toolchain@1.95.0
+
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: eval-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run eval tests
+        run: cargo test --workspace -- --include-ignored eval_
+        # Convention: all eval test functions are named eval_*

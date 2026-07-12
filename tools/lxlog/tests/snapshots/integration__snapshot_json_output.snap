@@ -1,0 +1,21 @@
+---
+source: tools/lxlog/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "anomalies": [
+    {
+      "line": 14,
+      "level": "ERROR",
+      "message": "Cache server connection refused, falling back to uncached mode"
+    },
+    {
+      "line": 25,
+      "level": "FATAL",
+      "message": "Worker thread terminated due to unhandled NullPointerException"
+    }
+  ],
+  "summary": "Two critical issues detected: cache server down causing performance degradation, and a fatal worker thread crash.",
+  "used_lines": "12 high-priority + 16 context samples (29 total lines)",
+  "capped": false
+}

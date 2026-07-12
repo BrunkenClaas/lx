@@ -1,0 +1,12 @@
+# Pinned to an EXACT Rust version for reproducible builds, formatting, and lints
+# over the long maintenance life of this project. An unversioned `channel =
+# "stable"` silently rolls forward on every `rustup update`, which changes
+# rustfmt/clippy output and can turn CI red on unrelated PRs (it did — see the
+# 2026-06-08 reformat). Bumping this version is a DELIBERATE, dated commit; see
+# the "Toolchain & dependency policy" section in CONTRIBUTING.md for the ritual.
+#
+# When bumping: update this version AND the matching `dtolnay/rust-toolchain@<ver>`
+# refs in .github/workflows/*.yml together — they must stay in lock-step.
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]

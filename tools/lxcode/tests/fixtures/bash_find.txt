@@ -1,0 +1,1 @@
+find all .log files older than 7 days and print their paths

@@ -1,0 +1,1 @@
+extract frames from video.mp4 at 1 frame per second

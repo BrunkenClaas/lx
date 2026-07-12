@@ -1,0 +1,11 @@
+server:
+  host: localhost
+  port: 8080
+database:
+  host: db.internal
+  port: 5432
+  name: production
+features:
+  - auth
+  - billing
+  - notifications

@@ -1,0 +1,5 @@
+---
+source: tools/lxask/tests/integration.rs
+expression: out.answer
+---
+Paris is the capital of France.

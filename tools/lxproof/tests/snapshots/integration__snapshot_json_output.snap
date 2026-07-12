@@ -1,0 +1,24 @@
+---
+source: tools/lxproof/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "text": "I received your letter yesterday.",
+  "changes": [
+    {
+      "original": "recieved",
+      "corrected": "received",
+      "reason": "Spelling: ie/ei rule"
+    },
+    {
+      "original": "you're",
+      "corrected": "your",
+      "reason": "Wrong homophone: possessive required"
+    },
+    {
+      "original": "yesturday",
+      "corrected": "yesterday",
+      "reason": "Spelling error"
+    }
+  ]
+}

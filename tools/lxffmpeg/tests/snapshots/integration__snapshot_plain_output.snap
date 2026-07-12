@@ -1,0 +1,5 @@
+---
+source: tools/lxffmpeg/tests/integration.rs
+expression: out.command.clone()
+---
+ffmpeg -i video.mp4 output.mp3

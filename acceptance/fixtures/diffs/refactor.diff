@@ -1,0 +1,43 @@
+diff --git a/src/utils/validation.rs b/src/utils/validation.rs
+index abcd123..efgh456 100644
+--- a/src/utils/validation.rs
++++ b/src/utils/validation.rs
+@@ -1,25 +1,15 @@
+ pub fn validate_email(email: &str) -> bool {
+-    if email.len() < 5 {
+-        return false;
+-    }
+-    if !email.contains('@') {
+-        return false;
+-    }
+-    if email.ends_with('.') {
+-        return false;
+-    }
+-    true
++    email.len() >= 5
++        && email.contains('@')
++        && !email.ends_with('.')
++        && email.contains('.')
+ }
+
+ pub fn validate_phone(phone: &str) -> bool {
+-    let digits: String = phone.chars()
+-        .filter(|c| c.is_ascii_digit())
+-        .collect();
+-    if digits.len() != 10 {
+-        return false;
+-    }
+-    true
++    phone.chars()
++        .filter(|c| c.is_ascii_digit())
++        .count()
++        == 10
+ }
+
+ pub fn validate_password(password: &str) -> bool {
+-    if password.len() < 8 {
+-        return false;
+-    }
+-    true
++    password.len() >= 8
+ }

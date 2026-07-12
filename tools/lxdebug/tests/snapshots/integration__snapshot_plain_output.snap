@@ -1,0 +1,7 @@
+---
+source: tools/lxdebug/tests/integration.rs
+expression: out.to_plain()
+---
+Fix:    Create the missing config file or verify the path.
+
+Run:    cp config.json.example config.json

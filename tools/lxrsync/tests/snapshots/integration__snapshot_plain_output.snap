@@ -1,0 +1,5 @@
+---
+source: tools/lxrsync/tests/integration.rs
+expression: out.command.clone()
+---
+rsync -avz /home/user/docs/ backup@remote:/backup/docs/

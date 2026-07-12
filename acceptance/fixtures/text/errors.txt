@@ -1,0 +1,4 @@
+The deployement pipeline has been setup to automaticaly run tests on every comit.
+Unfortunatly, the last three builds have failed becuase of a dependancy conflict.
+Our team lead dont know why the libary version was changed without a discusion.
+We need to revert the change and then carefuly review the pull request proccess.

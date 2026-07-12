@@ -1,0 +1,31 @@
+Q3 Planning Meeting - Tuesday afternoon
+
+Present: Clara, Marcus, Priya, Devon
+
+We need to finalize the roadmap for Q3. Main topics were the new search feature, infrastructure work, and hiring.
+
+Search feature:
+- Clara demoed the prototype, looked good overall
+- Needs performance improvements before launch
+- Marcus will handle the indexing optimization
+- Target: ready for internal testing by end of month
+
+Infrastructure:
+- Devon flagged that the build pipeline is taking too long (averaging 18 minutes)
+- Agreed to investigate caching options
+- Priya to look into distributed build options next week
+
+Hiring:
+- Two backend positions still open
+- Devon to send job descriptions to recruiting by Wednesday
+- Interview panel needs to be confirmed for the backend roles
+
+Decisions:
+- Search feature launch pushed to next quarter if performance targets not met
+- All infrastructure changes need staging validation before production
+
+Next steps summary:
+- Marcus: indexing optimization
+- Devon: job descriptions to recruiting, build pipeline investigation
+- Priya: research distributed build options
+- Clara: coordinate performance testing plan

@@ -1,0 +1,4 @@
+Sales Q1,1200
+Sales Q2,1500
+Sales Q3,980
+Sales Q4,2100

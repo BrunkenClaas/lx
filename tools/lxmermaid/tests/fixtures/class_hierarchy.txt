@@ -1,0 +1,1 @@
+Class hierarchy for a vehicle system: Vehicle is the base class with make, model, and year fields plus a drive() method. Car extends Vehicle and adds doors and trunk. Truck extends Vehicle and adds payload capacity and bed length.

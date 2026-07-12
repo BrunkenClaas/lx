@@ -1,0 +1,8 @@
+---
+source: tools/lxffmpeg/tests/integration.rs
+expression: "serde_json::to_string_pretty(&out).unwrap()"
+---
+{
+  "command": "ffmpeg -i video.mp4 output.mp3",
+  "dangerous": false
+}
