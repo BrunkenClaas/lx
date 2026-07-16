@@ -107,9 +107,11 @@ num_ctx = 32768                 # LX_NUM_CTX
 # 524288 = 512 KiB. Set higher for large codebases, lower for interactive use.
 max_input_bytes = 524288        # LX_MAX_INPUT_BYTES  (512 KiB)
 
-# Hard token limit for LLM responses (applies globally; individual tools may
-# set a tighter per-call limit — the smaller value wins).
-max_output_tokens = 1024        # LX_MAX_OUTPUT_TOKENS
+# Global ceiling on LLM response length. Each request uses min(per-tool budget,
+# this) — the smaller wins. The default (4096) equals the suite's largest per-tool
+# budget, so it never caps a tool by default; lower it to shorten every tool's
+# output globally (e.g. to cut cost on a hosted provider).
+max_output_tokens = 4096        # LX_MAX_OUTPUT_TOKENS
 
 # Context window note for local models (Ollama, LM Studio):
 # You no longer need to configure this on the model side — lx sends `num_ctx`

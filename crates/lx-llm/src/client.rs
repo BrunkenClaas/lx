@@ -37,6 +37,10 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             .ok_or_else(|| LxError::ConfigAuth(provider_key_hint(&provider)))?
     };
 
+    // Global output-token ceiling (config `limits.max_output_tokens`). Each
+    // client clamps every request's per-tool max_tokens to min(max_tokens, ceiling).
+    let max_output_ceiling = config.limits.max_output_tokens;
+
     if provider.uses_anthropic_wire() {
         let client = crate::anthropic::AnthropicClient::new(
             api_key,
@@ -45,6 +49,7 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             config.llm.timeout_secs,
             config.llm.max_retries,
             verbose,
+            max_output_ceiling,
         );
         Ok(Box::new(client))
     } else {
@@ -60,6 +65,7 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             config.llm.max_retries,
             verbose,
             num_ctx,
+            max_output_ceiling,
         );
         Ok(Box::new(client))
     }
