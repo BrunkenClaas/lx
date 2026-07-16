@@ -19,6 +19,11 @@ pub struct AnthropicClient {
     timeout: Duration,
     max_retries: u32,
     verbose: bool,
+    /// Global output-token ceiling from config (`limits.max_output_tokens`).
+    /// Each request's per-tool `max_tokens` is clamped to `min(max_tokens, ceiling)`
+    /// — the smaller wins, so a tool's tuned budget is never exceeded but a user
+    /// can lower every tool's output globally.
+    max_output_ceiling: u32,
 }
 
 impl AnthropicClient {
@@ -29,6 +34,7 @@ impl AnthropicClient {
         timeout_secs: u64,
         max_retries: u32,
         verbose: bool,
+        max_output_ceiling: u32,
     ) -> Self {
         let base = if base_url.is_empty() {
             ANTHROPIC_DEFAULT_BASE.to_string()
@@ -43,7 +49,14 @@ impl AnthropicClient {
             timeout: Duration::from_secs(timeout_secs),
             max_retries,
             verbose,
+            max_output_ceiling,
         }
+    }
+
+    /// Effective output cap for a request: the smaller of the per-tool
+    /// `max_tokens` and the configured global ceiling.
+    fn effective_max_tokens(&self, requested: u32) -> u32 {
+        requested.min(self.max_output_ceiling)
     }
 }
 
@@ -117,7 +130,7 @@ impl LlmClient for AnthropicClient {
             model: self.model.clone(),
             system: req.system.to_string(),
             messages: vec![build_user_message(req.user, req.image.as_ref())],
-            max_tokens: req.max_tokens,
+            max_tokens: self.effective_max_tokens(req.max_tokens),
             temperature: req.temperature,
         };
 
@@ -238,6 +251,7 @@ mod tests {
             30,
             3,
             false,
+            4096,
         );
         assert_eq!(client.model, "claude-haiku-4-5");
         assert_eq!(client.endpoint, "https://api.anthropic.com/v1/messages");
@@ -253,6 +267,7 @@ mod tests {
             30,
             3,
             false,
+            4096,
         );
         assert_eq!(client.endpoint, "https://bedrock.example.com/v1/messages");
     }
@@ -266,6 +281,7 @@ mod tests {
             30,
             3,
             false,
+            4096,
         );
         assert_eq!(client.endpoint, "https://proxy.example.com/v1/messages");
     }
@@ -283,6 +299,31 @@ mod tests {
         assert!(json.contains("\"model\":\"claude-haiku-4-5\""));
         assert!(json.contains("\"system\":\"You are a helpful assistant.\""));
         assert!(json.contains("\"max_tokens\":256"));
+    }
+
+    #[test]
+    fn max_tokens_clamped_to_ceiling() {
+        let low = AnthropicClient::new(
+            "key".into(),
+            String::new(),
+            "claude-haiku-4-5".into(),
+            30,
+            3,
+            false,
+            512,
+        );
+        assert_eq!(low.effective_max_tokens(2048), 512);
+
+        let high = AnthropicClient::new(
+            "key".into(),
+            String::new(),
+            "claude-haiku-4-5".into(),
+            30,
+            3,
+            false,
+            4096,
+        );
+        assert_eq!(high.effective_max_tokens(256), 256);
     }
 
     #[test]

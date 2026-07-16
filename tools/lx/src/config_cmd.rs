@@ -416,6 +416,8 @@ pub fn build_config(
             model: model.to_string(),
             timeout_secs,
             max_retries,
+            // Config wizard doesn't prompt for num_ctx; keep the default.
+            num_ctx: LlmConfig::default().num_ctx,
             api_key: None,
         },
         limits: LimitsConfig {

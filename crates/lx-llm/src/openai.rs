@@ -19,9 +19,21 @@ pub struct OpenAiClient {
     timeout: Duration,
     max_retries: u32,
     verbose: bool,
+    /// Context window sent as `num_ctx` for local providers (Ollama / LM Studio).
+    /// `None` for hosted providers — the field is then omitted from the request
+    /// body entirely, so hosted providers that reject unknown fields are unaffected.
+    num_ctx: Option<u32>,
+    /// Global output-token ceiling from config (`limits.max_output_tokens`).
+    /// Each request's per-tool `max_tokens` is clamped to `min(max_tokens, ceiling)`
+    /// — the smaller wins, so a tool's tuned budget is never exceeded but a user
+    /// can lower every tool's output globally.
+    max_output_ceiling: u32,
 }
 
 impl OpenAiClient {
+    // Constructor forwards config-resolved settings verbatim; the arg count
+    // mirrors the config surface rather than any avoidable complexity.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         api_key: String,
         base_url: String,
@@ -29,6 +41,8 @@ impl OpenAiClient {
         timeout_secs: u64,
         max_retries: u32,
         verbose: bool,
+        num_ctx: Option<u32>,
+        max_output_ceiling: u32,
     ) -> Self {
         OpenAiClient {
             api_key,
@@ -37,11 +51,19 @@ impl OpenAiClient {
             timeout: Duration::from_secs(timeout_secs),
             max_retries,
             verbose,
+            num_ctx,
+            max_output_ceiling,
         }
     }
 
     fn is_azure(&self) -> bool {
         self.base_url.contains(".openai.azure.com")
+    }
+
+    /// Effective output cap for a request: the smaller of the per-tool
+    /// `max_tokens` and the configured global ceiling.
+    fn effective_max_tokens(&self, requested: u32) -> u32 {
+        requested.min(self.max_output_ceiling)
     }
 }
 
@@ -53,6 +75,10 @@ struct ChatRequest {
     messages: Vec<serde_json::Value>,
     max_tokens: u32,
     temperature: f32,
+    /// Only present for local providers; omitted entirely otherwise so the
+    /// request body stays byte-identical to before for hosted providers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    num_ctx: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -111,8 +137,9 @@ impl LlmClient for OpenAiClient {
                 serde_json::json!({"role": "system", "content": req.system}),
                 serde_json::json!({"role": "user",   "content": user_content}),
             ],
-            max_tokens: req.max_tokens,
+            max_tokens: self.effective_max_tokens(req.max_tokens),
             temperature: req.temperature,
+            num_ctx: self.num_ctx,
         };
 
         // Serialise once; reuse for every retry.
@@ -234,6 +261,8 @@ mod tests {
             30,
             3,
             false,
+            None,
+            4096,
         );
         assert!(client.is_azure());
     }
@@ -247,6 +276,8 @@ mod tests {
             30,
             3,
             false,
+            None,
+            4096,
         );
         assert!(!client.is_azure());
     }
@@ -260,7 +291,66 @@ mod tests {
             30,
             3,
             false,
+            None,
+            4096,
         );
         assert!(!client.base_url.ends_with('/'));
+    }
+
+    #[test]
+    fn num_ctx_serialized_only_when_set() {
+        // Local provider: num_ctx present in the body.
+        let with_ctx = ChatRequest {
+            model: "llama3.1:8b".into(),
+            messages: vec![],
+            max_tokens: 256,
+            temperature: 0.0,
+            num_ctx: Some(32_768),
+        };
+        let json = serde_json::to_string(&with_ctx).unwrap();
+        assert!(json.contains("\"num_ctx\":32768"), "got: {json}");
+
+        // Hosted provider: num_ctx omitted entirely, body unchanged from before.
+        let without_ctx = ChatRequest {
+            model: "gpt-4o-mini".into(),
+            messages: vec![],
+            max_tokens: 256,
+            temperature: 0.0,
+            num_ctx: None,
+        };
+        let json = serde_json::to_string(&without_ctx).unwrap();
+        assert!(
+            !json.contains("num_ctx"),
+            "hosted body must omit num_ctx: {json}"
+        );
+    }
+
+    #[test]
+    fn max_tokens_clamped_to_ceiling() {
+        // Ceiling below the per-tool request → clamped down.
+        let low = OpenAiClient::new(
+            "key".into(),
+            "https://api.openai.com/v1".into(),
+            "m".into(),
+            30,
+            3,
+            false,
+            None,
+            512,
+        );
+        assert_eq!(low.effective_max_tokens(2048), 512);
+
+        // Ceiling above the per-tool request → request wins (tuned budget kept).
+        let high = OpenAiClient::new(
+            "key".into(),
+            "https://api.openai.com/v1".into(),
+            "m".into(),
+            30,
+            3,
+            false,
+            None,
+            4096,
+        );
+        assert_eq!(high.effective_max_tokens(256), 256);
     }
 }
