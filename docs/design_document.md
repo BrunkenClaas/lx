@@ -151,7 +151,6 @@ small, independently buildable, and independently releasable.
 ├── deny.toml               # cargo-deny: license allow-list, advisory & source policy
 ├── rust-toolchain.toml     # pinned channel = "stable"
 ├── README.md               # user-facing install/usage
-├── CLAUDE.md               # operational quick-reference for AI coding agents
 ├── CONTRIBUTING.md         # contribution rules
 ├── CHANGELOG.md            # Keep-a-Changelog history
 ├── docs/
@@ -1485,7 +1484,6 @@ A new tool follows the same shape as every existing one. The rhythm:
 | Resource | What it is |
 |----------|------------|
 | [`README.md`](../README.md) | User-facing install and usage overview. |
-| [`CLAUDE.md`](../CLAUDE.md) | Operational quick-reference for AI coding agents. |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Contribution rules. |
 | [`CHANGELOG.md`](../CHANGELOG.md) | Keep-a-Changelog release history. |
 | [`crates/lx-config/config.example.toml`](../crates/lx-config/config.example.toml) | Authoritative annotated config template. |
