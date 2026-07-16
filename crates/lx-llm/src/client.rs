@@ -48,6 +48,10 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
         );
         Ok(Box::new(client))
     } else {
+        // num_ctx is an Ollama / llama.cpp concept — send it only to local
+        // providers. Hosted OpenAI-compatible providers manage context
+        // themselves and may reject unknown fields, so they get `None`.
+        let num_ctx = provider.is_local().then_some(config.llm.num_ctx);
         let client = crate::openai::OpenAiClient::new(
             api_key,
             base_url,
@@ -55,6 +59,7 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             config.llm.timeout_secs,
             config.llm.max_retries,
             verbose,
+            num_ctx,
         );
         Ok(Box::new(client))
     }

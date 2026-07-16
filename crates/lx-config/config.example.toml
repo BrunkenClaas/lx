@@ -94,6 +94,13 @@ timeout_secs = 30               # LX_TIMEOUT_SECS
 # Retries use exponential back-off; Retry-After header is honoured on 429.
 max_retries = 3                 # LX_MAX_RETRIES
 
+# Context window (tokens) requested from LOCAL providers only (Ollama, LM Studio),
+# sent as `num_ctx`. Hosted providers ignore this — it is never added to their
+# request body. Ollama's own default is only ~2-4k, which silently truncates a
+# tool's prompt+input and yields malformed output; 32768 covers every tool with a
+# large piped input. Lower it only if your local model or hardware can't hold 32k.
+num_ctx = 32768                 # LX_NUM_CTX
+
 [limits]
 # Maximum bytes read from stdin before truncation.
 # A warning is printed to stderr when the limit is hit; the call still proceeds.
@@ -105,11 +112,11 @@ max_input_bytes = 524288        # LX_MAX_INPUT_BYTES  (512 KiB)
 max_output_tokens = 1024        # LX_MAX_OUTPUT_TOKENS
 
 # Context window note for local models (Ollama, LM Studio):
-# Each tool enforces its own per-call input cap before sending to the LLM.
-# The largest caps in the suite are ~64 000 bytes (~16k tokens). Adding the
-# system prompt (~500 tokens) and max output (1024 tokens), the worst-case
-# context needed is ~18k tokens. Set your local model's context window to
-# at least 32768 to cover every tool comfortably.
+# You no longer need to configure this on the model side — lx sends `num_ctx`
+# (see [llm] above) with every local request, defaulting to 32768. Each tool also
+# enforces its own per-call input cap: the largest caps are ~64 000 bytes
+# (~16k tokens); with the system prompt (~500 tokens) and max output, the
+# worst-case context needed is ~18k tokens, so 32768 covers every tool comfortably.
 
 [redact]
 # Secret/PII redaction applied before every LLM call on flagged tools.
