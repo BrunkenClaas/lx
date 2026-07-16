@@ -4,6 +4,21 @@ All notable changes to LX Coreutils are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning: each tool has independent versions; the suite release label is `YYYY-MM`.
 
+## [Unreleased]
+
+### Fixed
+
+- **Local models no longer silently truncate input.** Requests to local providers
+  (Ollama, LM Studio) now send `num_ctx` (default 32768, configurable via
+  `llm.num_ctx` / `LX_NUM_CTX`), so the model receives the full prompt instead of
+  being cut off at Ollama's small default context (~2–4k) — the cause of malformed
+  or truncated output on larger inputs. Hosted providers are unaffected: the field
+  is omitted from their request bodies.
+- **`limits.max_output_tokens` now takes effect.** It was previously loaded but
+  ignored; each request's output is now clamped to `min(per-tool budget, this)`.
+  The default is raised to 4096 (the largest per-tool budget) so it never caps a
+  tool by default; lower it to shorten every tool's output globally.
+
 ## [1.0.0] - 2026-07-12
 
 First public release.

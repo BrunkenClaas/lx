@@ -710,8 +710,8 @@ Every request a tool builds must satisfy (and tests assert) these invariants:
 - **`temperature = 0.0`**, carried through into the actual HTTP body — determinism
   depends on this reaching the API, not merely being set in a struct.
 - **Tight `max_tokens`**, set per tool (see the catalog in §13). The global config
-  cap (`limits.max_output_tokens`, default 1024) and the per-tool constant both
-  apply — the smaller wins.
+  cap (`limits.max_output_tokens`, default 4096) and the per-tool constant both
+  apply — the smaller wins (clamped in the client at request-build).
 - **Static, trusted system prompt** separated from **untrusted user data**. The
   system prompt is the only source of the task; for `untrusted` tools it explicitly
   instructs the model to ignore any instructions inside the data
@@ -724,6 +724,15 @@ post-hoc parse/salvage** (`lx_llm::schema`), **not** by constrained decoding. Th
 request body is a single uniform shape (`model` / `messages` / `max_tokens` /
 `temperature`) across all providers; it carries no `response_format`, `json_schema`,
 `format`, `grammar`, or `tools`/`tool_choice` fields.
+
+The one provider-conditional field is `num_ctx`, added **only** for local providers
+(Ollama, LM Studio) so the model receives the whole prompt instead of silently
+truncating it at Ollama's small default context (~2–4k). This is a context-window
+runtime setting, not constrained decoding — it does not shape or restrict the model's
+output tokens — and it is omitted entirely from hosted-provider request bodies (which
+manage context themselves and may reject unknown fields), so those bodies stay exactly
+as described above. Output length is separately clamped to `min(per-tool max_tokens,
+limits.max_output_tokens)` for every provider.
 
 ### 7.3.1 Why no constrained decoding (deliberate)
 
@@ -794,9 +803,10 @@ limits) before use.
 | `llm` | `model` | `""` (uses provider default) | `LX_MODEL` | Non-empty overrides the provider default. Never hardcoded in tool code. |
 | `llm` | `timeout_secs` | `30` | `LX_TIMEOUT_SECS` | Must be > 0. |
 | `llm` | `max_retries` | `3` | `LX_MAX_RETRIES` | Transient errors only. |
+| `llm` | `num_ctx` | `32768` | `LX_NUM_CTX` | Context window sent as `num_ctx` to **local providers only** (Ollama, LM Studio); omitted from hosted-provider request bodies. Must be > 0. |
 | `llm` | `api_key` | *(none)* | `LX_API_KEY` | **Never** from config files; env / credential store only. |
 | `limits` | `max_input_bytes` | `524288` (512 KiB) | `LX_MAX_INPUT_BYTES` | Truncate-with-warning, not abort. |
-| `limits` | `max_output_tokens` | `1024` | `LX_MAX_OUTPUT_TOKENS` | Global cap; per-tool limit may be tighter (smaller wins). |
+| `limits` | `max_output_tokens` | `4096` | `LX_MAX_OUTPUT_TOKENS` | Global output-token ceiling; each request uses `min(per-tool budget, this)` — smaller wins. Default equals the largest per-tool budget, so it never caps a tool by default. |
 | `redact` | `level` | `"standard"` | `LX_REDACT_LEVEL` | `standard` or `strict`; `off` rejected here (use `--no-redact`). |
 | `output` | `lang` | `"auto"` | `LX_LANG` | BCP-47 tag or `auto` (detect from locale). |
 | `output` | `color` | `"auto"` | `LX_COLOR` | `auto` / `always` / `never`. |
