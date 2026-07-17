@@ -18,6 +18,12 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
   ignored; each request's output is now clamped to `min(per-tool budget, this)`.
   The default is raised to 4096 (the largest per-tool budget) so it never caps a
   tool by default; lower it to shorten every tool's output globally.
+- **Clearer error when a model replies with prose instead of JSON.** Small local
+  models can drop the required JSON format on large inputs and answer in plain
+  text. The parse error no longer misattributes this to truncation / `max_tokens`;
+  it now states the model returned text, shows a short excerpt of the reply, and
+  suggests a stronger model or a smaller input. Genuinely truncated responses
+  still point at `max_tokens` as before.
 
 ## [1.0.0] - 2026-07-12
 
