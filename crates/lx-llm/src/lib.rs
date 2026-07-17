@@ -5,6 +5,7 @@ pub mod client;
 pub mod error;
 pub mod fragments;
 pub mod lang;
+pub mod ollama;
 pub mod openai;
 pub mod schema;
 

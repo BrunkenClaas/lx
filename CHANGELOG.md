@@ -8,12 +8,14 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Fixed
 
-- **Local models no longer silently truncate input.** Requests to local providers
-  (Ollama, LM Studio) now send `num_ctx` (default 32768, configurable via
-  `llm.num_ctx` / `LX_NUM_CTX`), so the model receives the full prompt instead of
-  being cut off at Ollama's small default context (~2–4k) — the cause of malformed
-  or truncated output on larger inputs. Hosted providers are unaffected: the field
-  is omitted from their request bodies.
+- **Ollama no longer silently truncates input.** lx now talks to Ollama's native
+  `/api/chat` endpoint, which honours `num_ctx` (default 32768, configurable via
+  `llm.num_ctx` / `LX_NUM_CTX`); the OpenAI-compatible `/v1` endpoint it used before
+  ignores `num_ctx` and clamps the context to ~2048 tokens, cutting off larger prompts
+  and causing malformed or prose output. Every other provider is unchanged (uniform
+  `/v1` body, no `num_ctx`). LM Studio users: set the context window in the LM Studio
+  GUI ("Context Length" ≥ 32k when loading the model) — LM Studio ignores `num_ctx`
+  from the API.
 - **`limits.max_output_tokens` now takes effect.** It was previously loaded but
   ignored; each request's output is now clamped to `min(per-tool budget, this)`.
   The default is raised to 4096 (the largest per-tool budget) so it never caps a

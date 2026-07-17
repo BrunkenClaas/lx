@@ -41,12 +41,14 @@ pub struct LlmConfig {
     pub timeout_secs: u64,
     /// Maximum retry attempts on transient errors (429, 5xx, network).
     pub max_retries: u32,
-    /// Context window (in tokens) requested from local providers only.
+    /// Context window (in tokens) requested from Ollama.
     ///
-    /// Sent as `num_ctx` to Ollama / LM Studio so the model sees the full
-    /// prompt instead of Ollama's small default (~2–4k), which silently
-    /// truncates the input and produces malformed output. Ignored for hosted
-    /// providers (they manage context themselves and reject unknown fields).
+    /// Sent as `options.num_ctx` on Ollama's native `/api/chat` endpoint so the
+    /// model sees the full prompt instead of Ollama's small default (~2k), which
+    /// silently truncates the input and produces malformed output. Not sent to
+    /// any other provider: LM Studio ignores it (its context is fixed by the GUI
+    /// slider at load time), and hosted providers manage context themselves and
+    /// may reject unknown fields.
     pub num_ctx: u32,
     /// API key — resolved from env/credential-store, never read from files.
     #[serde(skip)]
@@ -64,7 +66,7 @@ impl Default for LlmConfig {
             timeout_secs: 30,
             max_retries: 3,
             // 32k covers every tool's system prompt + a large piped input on a
-            // local model. Only sent to local providers (see `num_ctx` doc).
+            // local model. Only sent to Ollama's native endpoint (see `num_ctx` doc).
             num_ctx: 32_768,
             api_key: None,
         }

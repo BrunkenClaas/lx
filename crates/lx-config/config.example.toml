@@ -94,11 +94,14 @@ timeout_secs = 30               # LX_TIMEOUT_SECS
 # Retries use exponential back-off; Retry-After header is honoured on 429.
 max_retries = 3                 # LX_MAX_RETRIES
 
-# Context window (tokens) requested from LOCAL providers only (Ollama, LM Studio),
-# sent as `num_ctx`. Hosted providers ignore this — it is never added to their
-# request body. Ollama's own default is only ~2-4k, which silently truncates a
-# tool's prompt+input and yields malformed output; 32768 covers every tool with a
-# large piped input. Lower it only if your local model or hardware can't hold 32k.
+# Context window (tokens) requested from OLLAMA, sent as `num_ctx` on Ollama's
+# native /api/chat endpoint. Ollama's own default is only ~2k, which silently
+# truncates a tool's prompt+input and yields malformed/prose output; 32768 covers
+# every tool with a large piped input. Lower it only if your model or hardware
+# can't hold 32k. NOTE: this does NOT apply to LM Studio — LM Studio ignores
+# num_ctx in the request and takes its context ONLY from the GUI "Context Length"
+# slider set when the model loads (set that to >=32k). Hosted providers ignore
+# this field entirely; it is never added to their request body.
 num_ctx = 32768                 # LX_NUM_CTX
 
 [limits]
@@ -113,11 +116,14 @@ max_input_bytes = 524288        # LX_MAX_INPUT_BYTES  (512 KiB)
 # output globally (e.g. to cut cost on a hosted provider).
 max_output_tokens = 4096        # LX_MAX_OUTPUT_TOKENS
 
-# Context window note for local models (Ollama, LM Studio):
-# You no longer need to configure this on the model side — lx sends `num_ctx`
-# (see [llm] above) with every local request, defaulting to 32768. Each tool also
-# enforces its own per-call input cap: the largest caps are ~64 000 bytes
-# (~16k tokens); with the system prompt (~500 tokens) and max output, the
+# Context window note for local models:
+# - Ollama: nothing to configure on the model side — lx sends `num_ctx` (see [llm]
+#   above, default 32768) on Ollama's native endpoint with every request.
+# - LM Studio: you MUST set the context window in the LM Studio GUI ("Context
+#   Length" when loading the model) to >=32k — LM Studio ignores num_ctx from the
+#   API. On overflow it returns a clear 400 rather than truncating.
+# Each tool also enforces its own per-call input cap: the largest caps are ~64 000
+# bytes (~16k tokens); with the system prompt (~500 tokens) and max output, the
 # worst-case context needed is ~18k tokens, so 32768 covers every tool comfortably.
 
 [redact]
