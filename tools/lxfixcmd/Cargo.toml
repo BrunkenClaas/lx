@@ -1,6 +1,6 @@
 [package]
 name = "lxfixcmd"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Fix the last failed shell command"

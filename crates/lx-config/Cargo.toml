@@ -1,6 +1,6 @@
 [package]
 name = "lx-config"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Configuration loading for LX Coreutils (flags > env > project > user > defaults)"

@@ -6,6 +6,8 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-17
+
 ### Fixed
 
 - **Ollama no longer silently truncates input.** lx now talks to Ollama's native
