@@ -6,6 +6,15 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-17
+
+### Fixed
+
+- **Release archives no longer bundle the internal `lx-acceptance` harness.**
+  The suite ZIPs previously shipped `lx-acceptance` — the internal self-grading
+  development tool — alongside the user tools. It is now excluded; only `lx` and
+  the 72 user tools are packaged.
+
 ## [1.0.1] - 2026-07-17
 
 ### Fixed

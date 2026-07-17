@@ -1,6 +1,6 @@
 [package]
 name = "lxclass"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Classify input into categories"
