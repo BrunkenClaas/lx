@@ -6,6 +6,15 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Changed
+
+- **Default local model is now `qwen2.5:7b`** (and `qwen2.5-7b-instruct` for LM
+  Studio, `qwen/qwen-2.5-7b-instruct` for OpenRouter), replacing the previous
+  Llama 3.1 8B defaults. Qwen2.5 7B holds the required JSON output format
+  reliably even on large inputs, where Llama 3.1 8B tends to reply in prose.
+  Groq's default stays on Llama (Groq does not host Qwen). Override any default
+  via `llm.model` / `LX_MODEL` as before.
+
 ### Fixed
 
 - **Local models no longer silently truncate input.** Requests to local providers

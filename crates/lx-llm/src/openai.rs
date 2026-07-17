@@ -301,7 +301,7 @@ mod tests {
     fn num_ctx_serialized_only_when_set() {
         // Local provider: num_ctx present in the body.
         let with_ctx = ChatRequest {
-            model: "llama3.1:8b".into(),
+            model: "qwen2.5:7b".into(),
             messages: vec![],
             max_tokens: 256,
             temperature: 0.0,

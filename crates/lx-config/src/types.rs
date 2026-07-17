@@ -75,13 +75,13 @@ impl Provider {
     /// generations — override via `model` in config or `LX_MODEL` env var.
     pub fn default_model(&self) -> &'static str {
         match self {
-            Provider::Ollama => "llama3.1:8b",
-            Provider::LmStudio => "llama3.1-8b-instruct",
+            Provider::Ollama => "qwen2.5:7b",
+            Provider::LmStudio => "qwen2.5-7b-instruct",
             Provider::Anthropic => "claude-haiku-4-5",
             Provider::Openai => "gpt-4o-mini",
             Provider::Gemini => "gemini-2.5-flash-lite",
             Provider::Groq => "llama-3.1-8b-instant",
-            Provider::OpenRouter => "meta-llama/llama-3.1-8b-instruct:free",
+            Provider::OpenRouter => "qwen/qwen-2.5-7b-instruct",
             Provider::Mistral => "mistral-small-latest",
             Provider::DeepSeek => "deepseek-chat",
             Provider::Azure => "",
@@ -269,7 +269,7 @@ mod tests {
             "https://api.anthropic.com/v1"
         );
         assert_eq!(Provider::Azure.default_base_url(), "");
-        assert_eq!(Provider::Ollama.default_model(), "llama3.1:8b");
+        assert_eq!(Provider::Ollama.default_model(), "qwen2.5:7b");
         assert_eq!(Provider::Anthropic.default_model(), "claude-haiku-4-5");
         assert_eq!(Provider::Azure.default_model(), "");
     }

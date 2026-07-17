@@ -12,7 +12,7 @@ tool just works, offline. Prefer a hosted model? One env var switches to
 Anthropic, OpenAI, Gemini, Groq, and 6 others. Cold start < 15 ms either way.
 
 ```sh
-# no setup beyond `ollama pull llama3.1` — then:
+# no setup beyond `ollama pull qwen2.5:7b` — then:
 lxexplain "tar -xzf archive.tar.gz"        # explain any command
 git diff --staged | lxcommit               # generate a commit message
 lxsh "find all .log files older than 30d"  # natural language → shell
@@ -168,13 +168,13 @@ Each provider has a built-in default model (fast/cheap tier):
 
 | Provider     | Default model                              |
 |--------------|--------------------------------------------|
-| `ollama`     | `llama3.1:8b`                              |
-| `lmstudio`   | `llama3.1-8b-instruct`                     |
+| `ollama`     | `qwen2.5:7b`                               |
+| `lmstudio`   | `qwen2.5-7b-instruct`                      |
 | `anthropic`  | `claude-haiku-4-5`                         |
 | `openai`     | `gpt-4o-mini`                              |
 | `gemini`     | `gemini-2.5-flash-lite`                    |
 | `groq`       | `llama-3.1-8b-instant`                     |
-| `openrouter` | `meta-llama/llama-3.1-8b-instruct:free`    |
+| `openrouter` | `qwen/qwen-2.5-7b-instruct`                |
 | `mistral`    | `mistral-small-latest`                     |
 | `deepseek`   | `deepseek-chat`                            |
 | `azure`      | *(no default — set `LX_MODEL`)*            |
@@ -185,7 +185,7 @@ Each provider has a built-in default model (fast/cheap tier):
 |--------|-------------|
 | < 3 B  | Not recommended — too many hallucinations and schema errors. |
 | 3 B    | Simple command lookups only (`lxsh`, `lxsql`, `lxcurl`, …). Avoid long-output tools. |
-| 7–8 B  | **Recommended minimum.** Handles nearly the full suite. `llama3.1:8b` or `qwen2.5:7b`. |
+| 7–8 B  | **Recommended minimum.** Handles nearly the full suite. `qwen2.5:7b` (default) is preferred — it holds the JSON format reliably, even on large inputs. |
 | 14 B   | Near-remote quality; requires ≥16 GB VRAM. |
 | remote | Full suite, no constraints. |
 

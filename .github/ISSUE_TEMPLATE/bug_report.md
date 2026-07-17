@@ -36,7 +36,7 @@ $ lx<tool> --version
 **Provider / model**
 
 - Provider: <!-- ollama / anthropic / openai / … -->
-- Model: <!-- e.g. llama3.1:8b -->
+- Model: <!-- e.g. qwen2.5:7b -->
 
 **Environment**
 

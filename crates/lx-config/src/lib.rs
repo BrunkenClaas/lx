@@ -520,7 +520,7 @@ mod tests {
     fn effective_url_and_model_use_provider_defaults() {
         let cfg = Config::default(); // provider=ollama, base_url="", model=""
         assert_eq!(cfg.effective_base_url(), "http://localhost:11434/v1");
-        assert_eq!(cfg.effective_model(), "llama3.1:8b");
+        assert_eq!(cfg.effective_model(), "qwen2.5:7b");
     }
 
     #[test]

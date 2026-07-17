@@ -62,13 +62,13 @@ provider = "ollama"             # LX_PROVIDER
 # stale as providers release newer generations — override when needed.
 #
 # Provider defaults (fast/cheap tier):
-#   ollama      → llama3.1:8b
-#   lmstudio    → llama3.1-8b-instruct
+#   ollama      → qwen2.5:7b
+#   lmstudio    → qwen2.5-7b-instruct
 #   anthropic   → claude-haiku-4-5
 #   openai      → gpt-4o-mini
 #   gemini      → gemini-2.5-flash-lite
 #   groq        → llama-3.1-8b-instant
-#   openrouter  → meta-llama/llama-3.1-8b-instruct:free
+#   openrouter  → qwen/qwen-2.5-7b-instruct
 #   mistral     → mistral-small-latest
 #   deepseek    → deepseek-chat
 #   azure       → (no default; must be set)
@@ -81,7 +81,8 @@ provider = "ollama"             # LX_PROVIDER
 #   3 B     Simple command lookups only (lxsh, lxsql, lxcurl, …).
 #           Avoid long-output tools.
 #   7–8 B   Recommended minimum. Handles nearly the full suite.
-#           llama3.1:8b (widely available) or qwen2.5:7b.
+#           qwen2.5:7b (default; reliably holds the JSON format, even on
+#           large inputs) is preferred over llama3.1:8b.
 #   14 B    Near-remote quality; requires ≥16 GB VRAM.
 #   remote  Full suite, no constraints.
 #
