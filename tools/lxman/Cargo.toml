@@ -1,6 +1,6 @@
 [package]
 name = "lxman"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Show a plain-language man page for a command"
