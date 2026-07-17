@@ -69,14 +69,20 @@ jobs:
 
           mkdir -p "${STAGING}/shell-integration"
 
-          # Binaries
+          # Binaries. lx-acceptance is the internal self-grading dev harness,
+          # not a user tool — never ship it. Everything else (lx + the 72 tools)
+          # goes in.
           if [[ "$TARGET" == *windows* ]]; then
             for exe in target/${TARGET}/release/lx*.exe; do
-              [[ -f "$exe" ]] && cp "$exe" "${STAGING}/"
+              [[ -f "$exe" ]] || continue
+              [[ "$(basename "$exe")" == "lx-acceptance.exe" ]] && continue
+              cp "$exe" "${STAGING}/"
             done
           else
             for bin in target/${TARGET}/release/lx*; do
-              [[ -f "$bin" && -x "$bin" ]] && cp "$bin" "${STAGING}/"
+              [[ -f "$bin" && -x "$bin" ]] || continue
+              [[ "$(basename "$bin")" == "lx-acceptance" ]] && continue
+              cp "$bin" "${STAGING}/"
             done
           fi
 

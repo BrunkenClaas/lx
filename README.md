@@ -79,15 +79,15 @@ Download the suite ZIP for your platform from [GitHub Releases](https://github.c
 and verify the checksum:
 
 ```sh
-sha256sum -c lx-coreutils-1.0.1-x86_64-unknown-linux-musl.zip.sha256
+sha256sum -c lx-coreutils-1.0.2-x86_64-unknown-linux-musl.zip.sha256
 ```
 
 #### Linux — install to PATH
 
 ```sh
 mkdir -p ~/.local/bin
-unzip lx-coreutils-1.0.1-x86_64-unknown-linux-musl.zip
-mv lx-coreutils-1.0.1-x86_64-unknown-linux-musl/lx* ~/.local/bin/
+unzip lx-coreutils-1.0.2-x86_64-unknown-linux-musl.zip
+mv lx-coreutils-1.0.2-x86_64-unknown-linux-musl/lx* ~/.local/bin/
 ```
 
 If `~/.local/bin` is not yet on your PATH, add this to `~/.bashrc` or `~/.zshrc`:
@@ -102,8 +102,8 @@ export PATH="$HOME/.local/bin:$PATH"
 # Unzip and copy binaries to a local bin folder
 $dest = "$env:USERPROFILE\bin"
 New-Item -ItemType Directory -Force $dest | Out-Null
-Expand-Archive lx-coreutils-1.0.1-x86_64-pc-windows-gnu.zip -DestinationPath .
-Copy-Item lx-coreutils-1.0.1-x86_64-pc-windows-gnu\*.exe $dest
+Expand-Archive lx-coreutils-1.0.2-x86_64-pc-windows-gnu.zip -DestinationPath .
+Copy-Item lx-coreutils-1.0.2-x86_64-pc-windows-gnu\*.exe $dest
 ```
 
 Then add `%USERPROFILE%\bin` to your PATH permanently (run once):

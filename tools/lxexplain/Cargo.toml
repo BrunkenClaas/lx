@@ -1,6 +1,6 @@
 [package]
 name = "lxexplain"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Explain any command, error message, or code snippet in plain language"
