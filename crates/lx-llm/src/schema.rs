@@ -348,6 +348,30 @@ fn escape_control_chars(s: &str) -> std::borrow::Cow<'_, str> {
     std::borrow::Cow::Owned(out)
 }
 
+/// Build a short, single-line excerpt of a raw model response for embedding in
+/// an error message.
+///
+/// Collapses all runs of whitespace (including newlines) to a single space,
+/// trims, and caps at `MAX` chars with a trailing `…`. Used when the model
+/// returned non-JSON (typically prose) so the user can see *what* came back —
+/// e.g. `Summary: It appears you have made several changes…` — instead of a
+/// bare parse error. The excerpt is the model's own output on stderr, never the
+/// raw user input, so it is safe to surface.
+fn excerpt_for_error(raw: &str) -> String {
+    const MAX: usize = 160;
+    let collapsed: String = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.is_empty() {
+        return "<empty response>".to_string();
+    }
+    // Truncate on a char boundary, not a byte index (UTF-8 safe).
+    if collapsed.chars().count() > MAX {
+        let truncated: String = collapsed.chars().take(MAX).collect();
+        format!("{truncated}…")
+    } else {
+        collapsed
+    }
+}
+
 /// Parse and validate a JSON response from the model.
 ///
 /// Steps:
@@ -397,8 +421,14 @@ pub fn validate_json(response: &str, required_fields: &[&str]) -> Result<Value, 
                     }
                 }
             } else {
+                // Not EOF and nothing balanced to extract: the model did not
+                // return JSON at all — typically a prose reply ("Here is a
+                // summary: …"). This is a model-adherence problem, not
+                // truncation, so do NOT mention max_tokens. Show a short excerpt
+                // of what actually came back so the user can see it was prose.
                 return Err(LxError::LogicalError(format!(
-                    "model returned invalid response: failed to parse JSON: {first_err}\n  hint: try --verbose for request diagnostics"
+                    "model returned invalid response: failed to parse JSON: {first_err}\n  hint: the model replied with text instead of JSON: \"{excerpt}\"\n  hint: use a stronger model or a smaller input — small local models can drop the JSON format on large inputs",
+                    excerpt = excerpt_for_error(response)
                 )));
             }
         }
@@ -666,6 +696,71 @@ mod tests {
             err.to_string().contains("failed to parse JSON"),
             "regression: {err}"
         );
+    }
+
+    // ── Prose / non-JSON diagnostics (the lxsum-on-8B failure mode) ──────────
+
+    #[test]
+    fn validate_json_prose_reports_model_returned_text() {
+        // The real failure: a small local model summarises in prose instead of
+        // emitting JSON. The error must NOT blame truncation/max_tokens; it must
+        // say the model replied with text and show an excerpt.
+        let prose = "Summary: It appears that you have made several changes to the \
+                     configuration. Here is a summary: 1. Added num_ctx. 2. Raised the token limit.";
+        let err = validate_json(prose, &["summary"]).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("replied with text instead of JSON"),
+            "should identify prose, got: {msg}"
+        );
+        assert!(
+            msg.contains("stronger model"),
+            "should advise a stronger model, got: {msg}"
+        );
+        assert!(
+            !msg.contains("max_tokens") && !msg.contains("truncated"),
+            "must NOT blame truncation on a prose reply, got: {msg}"
+        );
+        assert!(
+            msg.contains("It appears that you have made"),
+            "should include an excerpt of the actual reply, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn validate_json_truncated_still_blames_max_tokens() {
+        // Guard the other branch: a genuinely truncated value (EOF, no salvage)
+        // must STILL point at max_tokens, not the prose message.
+        let err = validate_json(r#"{"answer":"4"#, &[]).unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("max_tokens"), "got: {msg}");
+        assert!(
+            !msg.contains("replied with text instead of JSON"),
+            "truncation must not be reported as prose, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn excerpt_for_error_collapses_and_caps() {
+        // Multi-line prose collapses to one line.
+        let e = excerpt_for_error("line one\n  line two\t\tthree");
+        assert_eq!(e, "line one line two three");
+        assert!(!e.contains('\n'));
+    }
+
+    #[test]
+    fn excerpt_for_error_truncates_long_input_on_char_boundary() {
+        // 200 multi-byte chars — must cut at 160 chars with an ellipsis and stay
+        // valid UTF-8 (no panic on a mid-codepoint byte index).
+        let long = "ü".repeat(200);
+        let e = excerpt_for_error(&long);
+        assert!(e.ends_with('…'), "got: {e}");
+        assert_eq!(e.chars().count(), 161, "160 chars + ellipsis: {e}");
+    }
+
+    #[test]
+    fn excerpt_for_error_empty() {
+        assert_eq!(excerpt_for_error("   \n\t "), "<empty response>");
     }
 
     // ── Control-character sanitization ──────────────────────────────────────
