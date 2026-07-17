@@ -19,9 +19,13 @@ pub struct OpenAiClient {
     timeout: Duration,
     max_retries: u32,
     verbose: bool,
-    /// Context window sent as `num_ctx` for local providers (Ollama / LM Studio).
-    /// `None` for hosted providers — the field is then omitted from the request
-    /// body entirely, so hosted providers that reject unknown fields are unaffected.
+    /// Optional top-level `num_ctx` for OpenAI-compatible backends that accept it.
+    /// Currently always `None`: Ollama (the one provider that needs num_ctx) is
+    /// served by the dedicated `OllamaClient` on its native endpoint, and no other
+    /// provider on this client honours a body `num_ctx` (LM Studio ignores it;
+    /// hosted providers may 400 on unknown fields). Kept as a capability for any
+    /// future `/v1` backend that does read it. When `None` the field is omitted
+    /// from the body entirely.
     num_ctx: Option<u32>,
     /// Global output-token ceiling from config (`limits.max_output_tokens`).
     /// Each request's per-tool `max_tokens` is clamped to `min(max_tokens, ceiling)`

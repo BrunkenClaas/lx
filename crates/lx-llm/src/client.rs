@@ -52,11 +52,27 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             max_output_ceiling,
         );
         Ok(Box::new(client))
+    } else if matches!(provider, Provider::Ollama) {
+        // Ollama needs its NATIVE /api/chat endpoint: its OpenAI-compat /v1
+        // layer silently ignores num_ctx and truncates the prompt to ~2048
+        // tokens. Only the native endpoint honours num_ctx (under `options`),
+        // so the Ollama provider gets a dedicated client. See ollama.rs.
+        let client = crate::ollama::OllamaClient::new(
+            base_url,
+            model,
+            config.llm.timeout_secs,
+            config.llm.max_retries,
+            verbose,
+            config.llm.num_ctx,
+            max_output_ceiling,
+        );
+        Ok(Box::new(client))
     } else {
-        // num_ctx is an Ollama / llama.cpp concept — send it only to local
-        // providers. Hosted OpenAI-compatible providers manage context
-        // themselves and may reject unknown fields, so they get `None`.
-        let num_ctx = provider.is_local().then_some(config.llm.num_ctx);
+        // All other OpenAI-compatible providers, hosted and local (LM Studio,
+        // llama.cpp, vLLM). num_ctx is NOT sent here: hosted providers manage
+        // context themselves and may 400 on unknown fields, and LM Studio
+        // ignores num_ctx in the body entirely (its context is fixed by the GUI
+        // "Context Length" slider when the model loads — set it to >=32k there).
         let client = crate::openai::OpenAiClient::new(
             api_key,
             base_url,
@@ -64,7 +80,7 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             config.llm.timeout_secs,
             config.llm.max_retries,
             verbose,
-            num_ctx,
+            None,
             max_output_ceiling,
         );
         Ok(Box::new(client))

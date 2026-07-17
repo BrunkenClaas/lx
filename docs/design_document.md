@@ -725,14 +725,24 @@ request body is a single uniform shape (`model` / `messages` / `max_tokens` /
 `temperature`) across all providers; it carries no `response_format`, `json_schema`,
 `format`, `grammar`, or `tools`/`tool_choice` fields.
 
-The one provider-conditional field is `num_ctx`, added **only** for local providers
-(Ollama, LM Studio) so the model receives the whole prompt instead of silently
-truncating it at Ollama's small default context (~2–4k). This is a context-window
-runtime setting, not constrained decoding — it does not shape or restrict the model's
-output tokens — and it is omitted entirely from hosted-provider request bodies (which
-manage context themselves and may reject unknown fields), so those bodies stay exactly
-as described above. Output length is separately clamped to `min(per-tool max_tokens,
-limits.max_output_tokens)` for every provider.
+**The one deliberate exception: Ollama uses its native endpoint.** Ollama's
+OpenAI-compatible `/v1/chat/completions` layer silently ignores `num_ctx` and clamps the
+context to its small default (~2048 tokens), truncating any larger prompt (a diff, a log)
+and producing malformed or prose output. Ollama only honours `num_ctx` on its **native
+`/api/chat` endpoint**, under the `options` object. So the Ollama provider is served by a
+dedicated `OllamaClient` that speaks `/api/chat` (`{model, messages, stream:false,
+options:{num_ctx, num_predict, temperature}}`) instead of `/v1`. This is the single break
+from the uniform-body rule, and it is a **bug fix, not a feature**: `num_ctx` is a
+context-window runtime setting, not constrained decoding — it does not shape or restrict
+the model's output tokens — so §7.3.1 is unaffected. Every other OpenAI-compatible backend
+(hosted providers, plus local LM Studio / llama.cpp / vLLM) stays on the uniform `/v1`
+body described above, with **no** `num_ctx` field.
+
+Note on LM Studio: it ignores a `num_ctx` in the request body entirely — its context
+window is fixed by the GUI "Context Length" slider chosen when the model loads. Set that
+to ≥32k for large inputs; on overflow LM Studio returns a clear `400` rather than
+truncating silently. Output length is separately clamped to `min(per-tool max_tokens,
+limits.max_output_tokens)` for every provider (sent as `num_predict` on Ollama).
 
 ### 7.3.1 Why no constrained decoding (deliberate)
 
@@ -803,7 +813,7 @@ limits) before use.
 | `llm` | `model` | `""` (uses provider default) | `LX_MODEL` | Non-empty overrides the provider default. Never hardcoded in tool code. |
 | `llm` | `timeout_secs` | `30` | `LX_TIMEOUT_SECS` | Must be > 0. |
 | `llm` | `max_retries` | `3` | `LX_MAX_RETRIES` | Transient errors only. |
-| `llm` | `num_ctx` | `32768` | `LX_NUM_CTX` | Context window sent as `num_ctx` to **local providers only** (Ollama, LM Studio); omitted from hosted-provider request bodies. Must be > 0. |
+| `llm` | `num_ctx` | `32768` | `LX_NUM_CTX` | Context window sent as `options.num_ctx` on **Ollama's** native `/api/chat` endpoint. Not sent to any other provider (LM Studio takes context from its GUI; hosted providers manage it themselves). Must be > 0. |
 | `llm` | `api_key` | *(none)* | `LX_API_KEY` | **Never** from config files; env / credential store only. |
 | `limits` | `max_input_bytes` | `524288` (512 KiB) | `LX_MAX_INPUT_BYTES` | Truncate-with-warning, not abort. |
 | `limits` | `max_output_tokens` | `4096` | `LX_MAX_OUTPUT_TOKENS` | Global output-token ceiling; each request uses `min(per-tool budget, this)` — smaller wins. Default equals the largest per-tool budget, so it never caps a tool by default. |

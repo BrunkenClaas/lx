@@ -189,7 +189,10 @@ Each provider has a built-in default model (fast/cheap tier):
 | 14 B   | Near-remote quality; requires ≥16 GB VRAM. |
 | remote | Full suite, no constraints. |
 
-For local models set the context window to at least **32 768 tokens** to cover every tool.
+Local models need a context window of at least **32 768 tokens** to cover every tool.
+With **Ollama** this is automatic — lx requests it (`num_ctx`) on every call. With
+**LM Studio** you must set it yourself: choose a **Context Length ≥ 32k** in the GUI when
+loading the model (LM Studio ignores the value from the API).
 
 > **Avoid reasoning/thinking models** (e.g. QwQ, Gemma 4 QAT, DeepSeek-R1, o1/o3).
 > These emit a chain-of-thought that consumes the token budget before the JSON answer,
