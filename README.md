@@ -6,6 +6,8 @@
 AI-native equivalents of the Unix tools you already know. 72 small, fast,
 composable commands — each does one thing, pipes into the next.
 
+![lxcommit, lxexplain, lxsh and lxlog running in a terminal: each command's real output appears within about a second](docs/assets/demo.gif)
+
 **Runs on a local model by default — no API key, no cloud, no data leaving your
 machine.** Point it at [Ollama](https://ollama.com) and a 7B model and every
 tool just works, offline. Prefer a hosted model? One env var switches to
@@ -13,22 +15,20 @@ Anthropic, OpenAI, Gemini, Groq, and 6 others. Cold start < 15 ms either way.
 
 ```sh
 # no setup beyond `ollama pull llama3.1` — then:
+git diff --staged | lxcommit               # write the commit message
 lxexplain "tar -xzf archive.tar.gz"        # explain any command
-git diff --staged | lxcommit               # generate a commit message
 lxsh "find all .log files older than 30d"  # natural language → shell
+journalctl -u nginx | lxlog                # triage a wall of logs
 ```
 
-## Overview
+## Finding the right tool
 
-```
+`lx` itself is the catalog — no network needed:
+
+```sh
 lx                                         # browse all 72 tools (offline)
 lx tools commit                            # find tools related to "commit"
 lx tools --cat code                        # list Code & Development tools
-lxexplain "tar -xzf archive.tar.gz"        # explain any command
-git diff --staged | lxcommit               # generate commit message
-lxsh "find all .log files older than 30d"  # generate shell commands
-cat error.log | lxdebug                    # analyse errors
-cat README.md | lxsum                      # summarise documents
 ```
 
 ## From tools you know
@@ -42,6 +42,7 @@ cat README.md | lxsum                      # summarise documents
 | jq trial-and-error | `lxjq "extract all email fields from users array"` |
 | sed/awk trial-and-error | `lxsed "print 3rd column where first is ERROR"` |
 | reading a dense diff | `git diff main \| lxdiff` |
+| squinting at a stack trace | `cat error.log \| lxdebug` |
 | decoding a JWT | `lxjwt < token.txt` |
 | figuring out why curl failed | `curl -v https://api.example.com 2>&1 \| lxhttp` |
 | googling DNS errors | `dig example.com \| lxdns` |
