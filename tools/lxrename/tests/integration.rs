@@ -56,7 +56,7 @@ fn empty_intent_returns_bad_usage() {
 fn empty_file_list_returns_bad_usage() {
     let client = MockLlmClient::returning(mock_response());
     let err = run(
-        "   ",
+        "",
         "rename to snake_case",
         None,
         &Config::default(),
@@ -64,6 +64,44 @@ fn empty_file_list_returns_bad_usage() {
     )
     .unwrap_err();
     assert_eq!(err.exit_code(), lx_core::exit::BAD_USAGE);
+
+    // Newlines with nothing between them are still no input.
+    let err = run(
+        "\n\n",
+        "rename to snake_case",
+        None,
+        &Config::default(),
+        &client,
+    )
+    .unwrap_err();
+    assert_eq!(err.exit_code(), lx_core::exit::BAD_USAGE);
+}
+
+/// A filename may consist entirely of blanks on Linux. Such an entry is a real
+/// file, not "no input" — the guard must not trim it away. Previously a lone
+/// "   " was rejected as an empty list.
+#[test]
+fn blanks_only_filename_is_a_valid_entry() {
+    let client = MockLlmClient::returning(mock_response());
+    let out = run(
+        "   ",
+        "rename to snake_case",
+        None,
+        &Config::default(),
+        &client,
+    );
+    assert!(
+        out.is_ok(),
+        "a file named with blanks must be accepted as a list entry"
+    );
+
+    // ...and it must survive intact into the prompt, not be trimmed off the end.
+    let req = client.last_request();
+    assert!(
+        req.user.contains("Files:\n   "),
+        "blanks-only filename was stripped from the prompt: {:?}",
+        req.user
+    );
 }
 
 #[test]

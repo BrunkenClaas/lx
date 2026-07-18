@@ -268,7 +268,9 @@ fn main() {
         })
     };
 
-    if file_list.trim().is_empty() {
+    // Line-by-line, not `trim().is_empty()` — a filename may be all blanks on Linux.
+    // See the matching guard in run.rs.
+    if file_list.lines().all(|l| l.is_empty()) {
         let e = lx_core::error::LxError::BadUsage(
             "no file list provided; pipe a file list or use --in <path>".to_string(),
         );
@@ -278,7 +280,11 @@ fn main() {
 
     // --dry-run: show what would be sent, then exit.
     if cli.dry_run {
-        let combined = format!("Intent: {}\n\nFiles:\n{}", intent.trim(), file_list.trim());
+        let combined = format!(
+            "Intent: {}\n\nFiles:\n{}",
+            intent.trim(),
+            file_list.trim_end_matches('\n').trim_end_matches('\r')
+        );
         if !cli.quiet {
             eprintln!("[dry-run] input ({} bytes):", combined.len());
             eprintln!("{}", combined);
