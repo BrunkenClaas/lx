@@ -97,7 +97,11 @@ pub fn run(
     if intent.trim().is_empty() {
         return Err(LxError::BadUsage("no rename intent provided".to_string()));
     }
-    if file_list.trim().is_empty() {
+    // Check line-by-line, NOT `file_list.trim().is_empty()`: a filename may consist
+    // entirely of blanks on Linux, and trimming the whole blob would make a lone
+    // "   " entry indistinguishable from no input at all. `l.is_empty()` (not
+    // `l.trim().is_empty()`) is deliberate for the same reason.
+    if file_list.lines().all(|l| l.is_empty()) {
         return Err(LxError::BadUsage(
             "no file list provided; pipe a file list or use --in <path>".to_string(),
         ));
@@ -105,14 +109,17 @@ pub fn run(
 
     let today = today_utc();
     let system = inject_lang(SYSTEM_TEMPLATE, &config.output.lang).replace("{today}", &today);
+    // Trim only the trailing newline(s), never the blanks: a leading or trailing
+    // entry may legitimately be a blanks-only filename.
+    let files = file_list.trim_end_matches('\n').trim_end_matches('\r');
     let user_msg = match dir_name {
         Some(dir) => format!(
             "Directory: {}\n\nIntent: {}\n\nFiles:\n{}",
             dir,
             intent.trim(),
-            file_list.trim()
+            files
         ),
-        None => format!("Intent: {}\n\nFiles:\n{}", intent.trim(), file_list.trim()),
+        None => format!("Intent: {}\n\nFiles:\n{}", intent.trim(), files),
     };
 
     let req = Request {

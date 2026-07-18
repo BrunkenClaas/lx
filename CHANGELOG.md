@@ -6,6 +6,17 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Fixed
+
+- **`lxrename` no longer rejects filenames made entirely of blanks.** On Linux a
+  filename may consist only of spaces or tabs. The empty-input guard trimmed the
+  whole file list before testing it, so a lone `"   "` entry was indistinguishable
+  from no input and was rejected with `error[E2]: no file list provided`. The
+  guard now tests line by line, and the list is no longer trimmed before being
+  sent to the model, so such an entry also survives at the start or end of a list.
+  (Filenames containing newlines remain unsupported by the line-delimited input
+  format — use `--in <path>`.)
+
 ## [1.0.2] - 2026-07-17
 
 ### Fixed
