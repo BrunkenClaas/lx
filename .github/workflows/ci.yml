@@ -3,6 +3,17 @@ name: CI
 on:
   push:
     branches: ["main", "master"]
+    # Doc-only pushes to main skip CI — prose and images cannot break a Rust build,
+    # and the full matrix costs ~9 minutes. Deliberately NOT set on `pull_request`:
+    # a required check that never runs leaves the PR waiting on it forever.
+    # `**.md` also matches a handful of .md TEST FIXTURES (acceptance/fixtures/text/*.md).
+    # Accepted deliberately: those feed the acceptance harness, which is #[ignore]-gated
+    # and does not run in CI. Kept blanket rather than enumerating doc paths — an explicit
+    # list would need updating for every new tool's README and would fail silently.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE*'
   pull_request:
 
 jobs:
