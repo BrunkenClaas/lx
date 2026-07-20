@@ -6,6 +6,14 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Added
+
+- **One-line install scripts.** `scripts/install.sh` (Linux, x86_64 + aarch64
+  incl. 64-bit Raspberry Pi OS) and `scripts/install.ps1` (Windows) download the
+  latest prebuilt release for the host platform, verify its SHA-256 checksum, and
+  install the binaries to a bin directory — no Rust toolchain, no compilation.
+  Location is overridable via `LX_INSTALL_DIR` and the version via `LX_VERSION`.
+
 ### Fixed
 
 - **`lxrename` no longer rejects filenames made entirely of blanks.** On Linux a

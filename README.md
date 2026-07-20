@@ -74,9 +74,37 @@ All tools share a consistent interface:
 
 ## Installation
 
-### Pre-compiled binaries (recommended)
+### Quick install (recommended)
 
-Download the suite ZIP for your platform from [GitHub Releases](https://github.com/BrunkenClaas/lx/releases)
+One command — downloads the latest prebuilt binaries for your platform, verifies
+the checksum, and installs them to a bin directory. No Rust toolchain, no compiling.
+
+**Linux (x86_64 or aarch64, incl. 64-bit Raspberry Pi OS):**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/BrunkenClaas/lx/main/scripts/install.sh | sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/BrunkenClaas/lx/main/scripts/install.ps1 | iex
+```
+
+The installer puts binaries in `~/.local/bin` (Linux) or `%USERPROFILE%\bin`
+(Windows) and tells you if that directory needs adding to your PATH. Override the
+location with `LX_INSTALL_DIR`, or pin a version with `LX_VERSION=1.0.2`.
+
+> Piping a script from the internet into your shell runs it with your
+> permissions. The script is short and does only what is described above — read
+> it first if you prefer: [`scripts/install.sh`](scripts/install.sh) /
+> [`scripts/install.ps1`](scripts/install.ps1). macOS has no prebuilt binary yet;
+> build from source (below).
+
+### Manual install from a release ZIP
+
+Prefer to do it by hand, or on a platform the installer doesn't cover? Download the
+suite ZIP for your platform from [GitHub Releases](https://github.com/BrunkenClaas/lx/releases)
 and verify the checksum:
 
 ```sh
