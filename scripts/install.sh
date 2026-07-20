@@ -153,14 +153,14 @@ main() {
         info "Almost ready — Ollama is installed. Pull a model and go:"
         info "  ollama pull llama3.1:8b"
     else
-        info "One more step — lx uses a local Ollama model by default:"
+        info "Almost ready — lx uses a local Ollama model by default:"
         info "  1. install Ollama:  https://ollama.com"
         info "  2. pull a model:    ollama pull llama3.1:8b"
     fi
     info ""
     info "Then try it:"
-    info "  lxexplain \"tar -xzf archive.tar.gz\""
-    info "  lx                                   # browse all 72 tools (offline)"
+    info "  lxexplain \"tar -xzf archive.tar.gz\"   # explain any command"
+    info "  lx   # browse all 72 tools (offline)"
     info ""
     info "Want another provider (local or hosted), use another model, or configure"
     info "advanced settings?  ->  run 'lx config'"

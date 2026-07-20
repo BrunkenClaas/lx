@@ -114,14 +114,14 @@ if (Get-Command ollama -ErrorAction SilentlyContinue) {
     Write-Info "Almost ready - Ollama is installed. Pull a model and go:"
     Write-Info "  ollama pull llama3.1:8b"
 } else {
-    Write-Info "One more step - lx uses a local Ollama model by default:"
+    Write-Info "Almost ready - lx uses a local Ollama model by default:"
     Write-Info "  1. install Ollama:  https://ollama.com"
     Write-Info "  2. pull a model:    ollama pull llama3.1:8b"
 }
 Write-Info ""
 Write-Info "Then try it:"
-Write-Info "  lxexplain `"tar -xzf archive.tar.gz`""
-Write-Info "  lx                                   # browse all 72 tools (offline)"
+Write-Info "  lxexplain `"tar -xzf archive.tar.gz`"   # explain any command"
+Write-Info "  lx   # browse all 72 tools (offline)"
 Write-Info ""
 Write-Info "Want another provider (local or hosted), use another model, or configure"
 Write-Info "advanced settings?  ->  run 'lx config'"
