@@ -554,6 +554,16 @@ Two release pipelines exist:
 
 ### 6.4 Installation
 
+- **One-line installer (recommended)** — `scripts/install.sh` (Linux) and
+  `scripts/install.ps1` (Windows) resolve the latest `suite-vX.Y.Z` release via the
+  GitHub API, download the ZIP for the host target, verify its `.sha256`, and copy
+  the binaries to a bin directory (`~/.local/bin` / `%USERPROFILE%\bin`, overridable
+  with `LX_INSTALL_DIR`; version pinnable with `LX_VERSION`). No Rust toolchain.
+  `install.sh` is POSIX `sh` (runs under dash/busybox ash on Raspberry Pi OS) and has
+  its executable bit set in the Git index. Neither script modifies `PATH` or runs
+  `lx config`; the default provider (local Ollama) works with no config file, so the
+  only remaining step is pulling a model. macOS is not covered (no prebuilt binary) —
+  the script exits with a build-from-source pointer.
 - **Suite ZIP** — download `lx-coreutils-<version>-<target>.zip` from a
   `suite-vX.Y.Z` GitHub Release. Contains all 72 binaries plus
   `README.md`, `CHANGELOG.md`, both licence files, `config.example.toml`,
