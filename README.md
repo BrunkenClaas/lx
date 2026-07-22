@@ -3,18 +3,21 @@
 [![CI](https://github.com/BrunkenClaas/lx/actions/workflows/ci.yml/badge.svg)](https://github.com/BrunkenClaas/lx/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-AI-native equivalents of the Unix tools you already know. 72 small, fast,
-composable commands — each does one thing, pipes into the next.
+Write a commit message from your diff, explain a scary command, turn plain
+English into a shell command — without leaving the terminal or pasting into a
+chat window. LX Coreutils is a suite of small, composable commands that each do
+one such job and pipe into the next.
 
 ![lxcommit, lxexplain, lxsh and lxlog running in a terminal: each command's real output appears within about a second](docs/assets/demo.gif)
 
-**Runs on a local model by default — no API key, no cloud, no data leaving your
-machine.** Point it at [Ollama](https://ollama.com) and a 7B model and every
-tool just works, offline. Prefer a hosted model? One env var switches to
-Anthropic, OpenAI, Gemini, Groq, and 6 others. Cold start < 15 ms either way.
+**Runs on a local [Ollama](https://ollama.com) model by default — no API key,
+nothing leaves your machine.** Or point it at a hosted model (Anthropic, OpenAI,
+Gemini, Groq, +6) with one env var: each call is deterministic and tightly
+scoped, so a fast, cheap model costs a fraction of a cent. Either way, cold
+start < 15 ms.
 
 ```sh
-# no setup beyond `ollama pull llama3.1` — then:
+# with a local model (default) or a cheap hosted one — then:
 git diff --staged | lxcommit               # write the commit message
 lxexplain "tar -xzf archive.tar.gz"        # explain any command
 lxsh "find all .log files older than 30d"  # natural language → shell
