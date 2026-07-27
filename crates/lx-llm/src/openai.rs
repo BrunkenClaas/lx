@@ -32,6 +32,11 @@ pub struct OpenAiClient {
     /// — the smaller wins, so a tool's tuned budget is never exceeded but a user
     /// can lower every tool's output globally.
     max_output_ceiling: u32,
+    /// Provider-specific JSON fragment that disables reasoning, or `None`.
+    /// Resolved by `client_from_config` from the provider (only for providers where
+    /// the field is verified safe); its keys are merged into the request body.
+    /// `None` = send nothing (reasoning allowed, or the provider has no safe field).
+    reasoning_off: Option<serde_json::Value>,
 }
 
 impl OpenAiClient {
@@ -47,6 +52,7 @@ impl OpenAiClient {
         verbose: bool,
         num_ctx: Option<u32>,
         max_output_ceiling: u32,
+        reasoning_off: Option<serde_json::Value>,
     ) -> Self {
         OpenAiClient {
             api_key,
@@ -57,6 +63,7 @@ impl OpenAiClient {
             verbose,
             num_ctx,
             max_output_ceiling,
+            reasoning_off,
         }
     }
 
@@ -127,6 +134,26 @@ fn build_user_content(user_text: &str, image: Option<&ImageData>) -> serde_json:
     }
 }
 
+/// Serialise `ChatRequest` and splice the reasoning-off fragment's top-level keys
+/// into it. When `fragment` is `None` the body is unchanged (byte-identical to the
+/// pre-feature behaviour). The fragment is always a JSON object of top-level keys
+/// (e.g. `{"reasoning": {...}}` or `{"reasoning_effort": "none"}`).
+fn merge_reasoning_off(
+    body: &ChatRequest,
+    fragment: Option<&serde_json::Value>,
+) -> Result<serde_json::Value, LlmError> {
+    let mut value = serde_json::to_value(body)
+        .map_err(|e| LlmError::Parse(format!("request serialisation failed: {e}")))?;
+    if let Some(frag) = fragment {
+        if let (Some(obj), Some(frag_obj)) = (value.as_object_mut(), frag.as_object()) {
+            for (k, v) in frag_obj {
+                obj.insert(k.clone(), v.clone());
+            }
+        }
+    }
+    Ok(value)
+}
+
 // ── Client implementation ─────────────────────────────────────────────────────
 
 impl LlmClient for OpenAiClient {
@@ -146,8 +173,13 @@ impl LlmClient for OpenAiClient {
             num_ctx: self.num_ctx,
         };
 
+        // Merge the provider-specific reasoning-off fragment (if any) into the
+        // top-level body. Done at the JSON layer, not the struct, because each
+        // provider spells the field differently — there is no single typed field.
+        let body_value = merge_reasoning_off(&body, self.reasoning_off.as_ref())?;
+
         // Serialise once; reuse for every retry.
-        let body_json = serde_json::to_string(&body)
+        let body_json = serde_json::to_string(&body_value)
             .map_err(|e| LlmError::Parse(format!("request serialisation failed: {e}")))?;
 
         // Build the ureq agent once.
@@ -267,6 +299,7 @@ mod tests {
             false,
             None,
             4096,
+            None,
         );
         assert!(client.is_azure());
     }
@@ -282,6 +315,7 @@ mod tests {
             false,
             None,
             4096,
+            None,
         );
         assert!(!client.is_azure());
     }
@@ -297,6 +331,7 @@ mod tests {
             false,
             None,
             4096,
+            None,
         );
         assert!(!client.base_url.ends_with('/'));
     }
@@ -330,6 +365,43 @@ mod tests {
     }
 
     #[test]
+    fn reasoning_off_fragment_merged_into_body() {
+        let base = ChatRequest {
+            model: "x".into(),
+            messages: vec![],
+            max_tokens: 256,
+            temperature: 0.0,
+            num_ctx: None,
+        };
+
+        // No fragment → body has no reasoning keys (byte-identical to before).
+        let v = merge_reasoning_off(&base, None).unwrap();
+        let json = serde_json::to_string(&v).unwrap();
+        assert!(!json.contains("reasoning"), "clean body: {json}");
+
+        // OpenRouter-style fragment → keys spliced into the top-level object.
+        let frag = serde_json::json!({"reasoning": {"exclude": true}});
+        let v = merge_reasoning_off(&base, Some(&frag)).unwrap();
+        let json = serde_json::to_string(&v).unwrap();
+        assert!(
+            json.contains("\"reasoning\":{\"exclude\":true}"),
+            "got: {json}"
+        );
+        // Original fields survive the merge.
+        assert!(json.contains("\"max_tokens\":256"), "got: {json}");
+        assert!(json.contains("\"model\":\"x\""), "got: {json}");
+
+        // Gemini-style scalar fragment merges too.
+        let frag = serde_json::json!({"reasoning_effort": "none"});
+        let v = merge_reasoning_off(&base, Some(&frag)).unwrap();
+        let json = serde_json::to_string(&v).unwrap();
+        assert!(
+            json.contains("\"reasoning_effort\":\"none\""),
+            "got: {json}"
+        );
+    }
+
+    #[test]
     fn max_tokens_clamped_to_ceiling() {
         // Ceiling below the per-tool request → clamped down.
         let low = OpenAiClient::new(
@@ -341,6 +413,7 @@ mod tests {
             false,
             None,
             512,
+            None,
         );
         assert_eq!(low.effective_max_tokens(2048), 512);
 
@@ -354,6 +427,7 @@ mod tests {
             false,
             None,
             4096,
+            None,
         );
         assert_eq!(high.effective_max_tokens(256), 256);
     }

@@ -104,6 +104,17 @@ max_retries = 3                 # LX_MAX_RETRIES
 # this field entirely; it is never added to their request body.
 num_ctx = 32768                 # LX_NUM_CTX
 
+# Whether the model may "think"/reason before answering. Default false: lx tools
+# want a bounded JSON answer, and reasoning tokens burn the tight per-tool output
+# budget before the answer — on some providers (e.g. Gemini 2.5 Flash) that
+# silently truncates the response. When false, lx sends the provider's
+# disable-reasoning field ONLY where it is known safe (OpenRouter, Gemini,
+# DeepSeek, and Ollama natively); providers that would reject it (Anthropic, Groq)
+# are sent nothing, so a working request is never broken — "off" is best-effort.
+# A non-reasoning model is still preferable when your provider offers one. Set
+# true to allow reasoning (nothing is sent; the provider default applies).
+reasoning = false               # LX_REASONING  (true/false)
+
 [limits]
 # Maximum bytes read from stdin before truncation.
 # A warning is printed to stderr when the limit is hit; the call still proceeds.

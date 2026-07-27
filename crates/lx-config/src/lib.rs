@@ -50,6 +50,18 @@ pub struct LlmConfig {
     /// slider at load time), and hosted providers manage context themselves and
     /// may reject unknown fields.
     pub num_ctx: u32,
+    /// Whether the model is allowed to "think" / reason before answering.
+    ///
+    /// Default `false`: lx tools want a bounded JSON answer, and reasoning tokens
+    /// burn the tight per-tool output budget before the answer — on some providers
+    /// (e.g. Gemini 2.5 Flash) that silently truncates the response. When `false`,
+    /// each client sends the provider's disable-reasoning field **only where that
+    /// field is known safe** (OpenRouter, Gemini, DeepSeek, and Ollama natively);
+    /// providers that would reject it (Anthropic, Groq, …) are sent nothing, so a
+    /// working request is never broken. "Off" is therefore best-effort per provider.
+    /// Set `true` to allow reasoning (nothing is sent; the provider default applies).
+    /// A non-reasoning model is still preferable when available — see the README.
+    pub reasoning: bool,
     /// API key — resolved from env/credential-store, never read from files.
     #[serde(skip)]
     pub api_key: Option<String>,
@@ -68,6 +80,9 @@ impl Default for LlmConfig {
             // 32k covers every tool's system prompt + a large piped input on a
             // local model. Only sent to Ollama's native endpoint (see `num_ctx` doc).
             num_ctx: 32_768,
+            // Off by default: reasoning wastes the tight output budget these tools
+            // run on, and on some providers silently truncates the JSON answer.
+            reasoning: false,
             api_key: None,
         }
     }
@@ -333,6 +348,9 @@ fn merge_into(base: &mut Config, overlay: Config) {
     if overlay.llm.num_ctx != d.llm.num_ctx {
         base.llm.num_ctx = overlay.llm.num_ctx;
     }
+    if overlay.llm.reasoning != d.llm.reasoning {
+        base.llm.reasoning = overlay.llm.reasoning;
+    }
 
     if overlay.limits.max_input_bytes != d.limits.max_input_bytes {
         base.limits.max_input_bytes = overlay.limits.max_input_bytes;
@@ -389,6 +407,13 @@ fn apply_env_vars(cfg: &mut Config) {
             warn_parse("LX_NUM_CTX", &v);
         }
     }
+    if let Ok(v) = std::env::var("LX_REASONING") {
+        if let Some(b) = parse_bool(&v) {
+            cfg.llm.reasoning = b;
+        } else {
+            warn_parse("LX_REASONING", &v);
+        }
+    }
     if let Ok(v) = std::env::var("LX_MAX_INPUT_BYTES") {
         if let Ok(n) = v.parse() {
             cfg.limits.max_input_bytes = n;
@@ -416,6 +441,16 @@ fn apply_env_vars(cfg: &mut Config) {
 
 fn warn_parse(var: &str, val: &str) {
     eprintln!("warning: invalid value for {var}='{val}' (ignored)");
+}
+
+/// Parse a boolean env var, accepting the common spellings. Returns `None` for
+/// anything unrecognised so the caller can warn and keep the default.
+fn parse_bool(v: &str) -> Option<bool> {
+    match v.trim().to_ascii_lowercase().as_str() {
+        "true" | "1" | "yes" | "on" => Some(true),
+        "false" | "0" | "no" | "off" => Some(false),
+        _ => None,
+    }
 }
 
 // ── CLI override layer ─────────────────────────────────────────────────────────
@@ -511,6 +546,7 @@ mod tests {
         assert_eq!(cfg.llm.timeout_secs, 30);
         assert_eq!(cfg.llm.max_retries, 3);
         assert_eq!(cfg.llm.num_ctx, 32_768);
+        assert!(!cfg.llm.reasoning, "reasoning must default to off");
         assert_eq!(cfg.limits.max_input_bytes, 524_288);
         assert_eq!(cfg.limits.max_output_tokens, 4096);
         assert_eq!(cfg.redact.level, "standard");
@@ -596,6 +632,24 @@ color = "always"
         assert_eq!(cfg.limits.max_input_bytes, 1024);
         assert_eq!(cfg.output.lang, "de");
         assert_eq!(cfg.output.color, "always");
+    }
+
+    #[test]
+    fn reasoning_toml_and_bool_parsing() {
+        // reasoning = true from a TOML file is honoured.
+        let cfg: Config = toml::from_str("[llm]\nreasoning = true\n").unwrap();
+        assert!(cfg.llm.reasoning);
+
+        // Default (no key) stays off.
+        let cfg: Config = toml::from_str("[llm]\nmodel = \"x\"\n").unwrap();
+        assert!(!cfg.llm.reasoning);
+
+        // Env-var spellings.
+        assert_eq!(parse_bool("true"), Some(true));
+        assert_eq!(parse_bool("1"), Some(true));
+        assert_eq!(parse_bool("OFF"), Some(false));
+        assert_eq!(parse_bool("0"), Some(false));
+        assert_eq!(parse_bool("maybe"), None);
     }
 
     #[test]

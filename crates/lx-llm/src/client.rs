@@ -4,6 +4,32 @@ use lx_core::error::LxError;
 
 use crate::LlmClient;
 
+/// The provider-specific JSON body fragment that disables reasoning, for the
+/// OpenAI-compatible (`/chat/completions`) clients.
+///
+/// Returns `Some(object)` **only** where the field is verified safe (honoured or
+/// silently ignored, never a 400) as of the providers checked 2026-07-22:
+///   - OpenRouter → `{"reasoning": {"exclude": true}}` (ignored on non-reasoning models)
+///   - Gemini (OpenAI-compat) → `{"reasoning_effort": "none"}` (2.5 Flash; Pro/3.x can't
+///     disable but ignore the field)
+///   - DeepSeek → `{"thinking": {"type": "disabled"}}`
+///
+/// Returns `None` for every other provider — crucially Anthropic and Groq, which
+/// **reject** a disable field with HTTP 400. Sending nothing there never breaks a
+/// working request; "reasoning off" is therefore best-effort per provider.
+/// (Ollama is not handled here — it uses the native `OllamaClient`, which sends
+/// `think: false` directly.) Only called when `config.llm.reasoning == false`.
+fn openai_reasoning_off_fragment(provider: &Provider) -> Option<serde_json::Value> {
+    match provider {
+        Provider::OpenRouter => Some(serde_json::json!({"reasoning": {"exclude": true}})),
+        Provider::Gemini => Some(serde_json::json!({"reasoning_effort": "none"})),
+        Provider::DeepSeek => Some(serde_json::json!({"thinking": {"type": "disabled"}})),
+        // Anthropic/Groq 400 on a disable field; OpenAI's floor is "minimal" (not
+        // truly off); Mistral/Azure/LM Studio have no safe field. Send nothing.
+        _ => None,
+    }
+}
+
 /// Construct the correct LLM client from the loaded configuration.
 ///
 /// The provider is determined by `config.llm.provider` (already resolved from
@@ -65,6 +91,8 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             verbose,
             config.llm.num_ctx,
             max_output_ceiling,
+            // reasoning=false → send `think: false` on the native endpoint.
+            !config.llm.reasoning,
         );
         Ok(Box::new(client))
     } else {
@@ -73,6 +101,13 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
         // context themselves and may 400 on unknown fields, and LM Studio
         // ignores num_ctx in the body entirely (its context is fixed by the GUI
         // "Context Length" slider when the model loads — set it to >=32k there).
+        // reasoning=false → send the provider's disable-reasoning field, but only
+        // where it's known safe (see openai_reasoning_off_fragment).
+        let reasoning_off = if config.llm.reasoning {
+            None
+        } else {
+            openai_reasoning_off_fragment(&provider)
+        };
         let client = crate::openai::OpenAiClient::new(
             api_key,
             base_url,
@@ -82,6 +117,7 @@ pub fn client_from_config(config: &Config, verbose: bool) -> Result<Box<dyn LlmC
             verbose,
             None,
             max_output_ceiling,
+            reasoning_off,
         );
         Ok(Box::new(client))
     }
@@ -134,6 +170,33 @@ mod tests {
         cfg.llm.api_key = Some("sk-ant-test".to_string());
 
         assert!(client_from_config(&cfg, false).is_ok());
+    }
+
+    #[test]
+    fn reasoning_off_fragment_only_for_safe_providers() {
+        // Providers with a verified-safe disable field.
+        assert!(openai_reasoning_off_fragment(&Provider::OpenRouter).is_some());
+        assert!(openai_reasoning_off_fragment(&Provider::Gemini).is_some());
+        assert!(openai_reasoning_off_fragment(&Provider::DeepSeek).is_some());
+        // OpenRouter's exact shape.
+        let f = openai_reasoning_off_fragment(&Provider::OpenRouter).unwrap();
+        assert_eq!(f, serde_json::json!({"reasoning": {"exclude": true}}));
+
+        // Providers that 400 on a disable field, or have no safe one → None.
+        // This is the guard against breaking a working request.
+        for p in [
+            Provider::Anthropic, // 400: thinking:{type:disabled} unsupported
+            Provider::Groq,      // 400: rejects reasoning_effort:"none"
+            Provider::Openai,    // floor is "minimal", not truly off
+            Provider::Mistral,
+            Provider::Azure,
+            Provider::LmStudio,
+        ] {
+            assert!(
+                openai_reasoning_off_fragment(&p).is_none(),
+                "provider {p:?} must not receive a reasoning-off field"
+            );
+        }
     }
 
     #[test]

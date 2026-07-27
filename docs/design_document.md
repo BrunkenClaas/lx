@@ -754,6 +754,22 @@ to ≥32k for large inputs; on overflow LM Studio returns a clear `400` rather t
 truncating silently. Output length is separately clamped to `min(per-tool max_tokens,
 limits.max_output_tokens)` for every provider (sent as `num_predict` on Ollama).
 
+The second, narrower per-provider divergence is the **reasoning toggle** (`llm.reasoning`,
+default `false` — `LX_REASONING`). lx's tools want a bounded JSON answer, and reasoning
+tokens burn the tight per-tool output budget before the answer — on some providers (Gemini
+2.5 Flash) that silently truncates the response, the same failure class as the `num_ctx`
+bug. When `reasoning = false`, each client sends the provider's disable-reasoning field —
+but **only where that field is verified safe** (honoured or silently ignored, never a
+`400`): OpenRouter (`reasoning:{exclude:true}`), Gemini (`reasoning_effort:"none"`),
+DeepSeek (`thinking:{type:"disabled"}`), and Ollama natively (`think:false`). Providers
+that **reject** a disable field — Anthropic and Groq return `400` — are sent **nothing**,
+so a working request is never broken; OpenAI's floor is `"minimal"` (not truly off) and is
+likewise left alone. "Off" is therefore **best-effort per provider**. Like `num_ctx`, this
+is a runtime parameter, not constrained decoding, so §7.3.1 is unaffected. The per-provider
+field is resolved from the `Provider` enum in `client_from_config`; the OpenAI-compatible
+client merges it into the body at the JSON layer (there is no single typed field because
+every provider spells it differently).
+
 ### 7.3.1 Why no constrained decoding (deliberate)
 
 Constrained / guided decoding (provider-enforced JSON Schema or GBNF grammar) was
@@ -764,9 +780,10 @@ Reasons:
 - **Not portable across providers.** The mechanism differs per backend (OpenAI/Azure
   `response_format: json_schema`, Ollama top-level `format`, llama.cpp/LM Studio
   `grammar`, vLLM `guided_json`), and Anthropic-native has no equivalent. Adopting it
-  means per-provider branching of the request body — the same wall hit and declined in
-  the reasoning-suppression work (LM Studio ignores such API fields; some endpoints
-  `400` on unknown fields). It contradicts the one-uniform-body design.
+  means per-provider branching of the request body. The reasoning toggle (above) accepts
+  exactly that branching — but only because it is a bounded, best-effort runtime knob that
+  sends nothing where a field would `400`; a JSON-schema/grammar contract is neither bounded
+  nor optional, so the same branching here would contradict the one-uniform-body design.
 - **No machine-readable schemas exist.** Each tool's contract lives as prose +
   few-shot examples in `system.txt`, and `lx_llm::schema` is hand-rolled per tool.
   Constraining decode would require authoring and maintaining a real JSON Schema for
@@ -824,6 +841,7 @@ limits) before use.
 | `llm` | `timeout_secs` | `30` | `LX_TIMEOUT_SECS` | Must be > 0. |
 | `llm` | `max_retries` | `3` | `LX_MAX_RETRIES` | Transient errors only. |
 | `llm` | `num_ctx` | `32768` | `LX_NUM_CTX` | Context window sent as `options.num_ctx` on **Ollama's** native `/api/chat` endpoint. Not sent to any other provider (LM Studio takes context from its GUI; hosted providers manage it themselves). Must be > 0. |
+| `llm` | `reasoning` | `false` | `LX_REASONING` | Allow the model to reason/think. Default `false`: lx sends the provider's disable-reasoning field only where safe (OpenRouter/Gemini/DeepSeek/Ollama); Anthropic/Groq/others sent nothing (best-effort — never breaks a request). See §7.3. |
 | `llm` | `api_key` | *(none)* | `LX_API_KEY` | **Never** from config files; env / credential store only. |
 | `limits` | `max_input_bytes` | `524288` (512 KiB) | `LX_MAX_INPUT_BYTES` | Truncate-with-warning, not abort. |
 | `limits` | `max_output_tokens` | `4096` | `LX_MAX_OUTPUT_TOKENS` | Global output-token ceiling; each request uses `min(per-tool budget, this)` — smaller wins. Default equals the largest per-tool budget, so it never caps a tool by default. |
@@ -1527,5 +1545,9 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-07-27 | Reasoning toggle (`llm.reasoning`, off by default): second per-provider body divergence, best-effort disable-reasoning field. §7.3, §7.3.1, config table. | BrunkenClaas |
+| 2026-07-20 | Documented the one-line install scripts (`scripts/install.{sh,ps1}`). §6.4. | BrunkenClaas |
+| 2026-07-17 | Ollama switched to its native `/api/chat` endpoint so `num_ctx` is honored — the first deliberate break from the uniform-body rule. §7.3. | BrunkenClaas |
+| 2026-07-16 | Documented `num_ctx` and the `max_output_tokens` output ceiling; added the `[Unreleased]` changelog convention. | BrunkenClaas |
 | 2026-07-12 | Initial public release (1.0.0). | BrunkenClaas |
 

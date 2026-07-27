@@ -418,6 +418,8 @@ pub fn build_config(
             max_retries,
             // Config wizard doesn't prompt for num_ctx; keep the default.
             num_ctx: LlmConfig::default().num_ctx,
+            // Nor for reasoning; keep the default (off — see LlmConfig::reasoning).
+            reasoning: LlmConfig::default().reasoning,
             api_key: None,
         },
         limits: LimitsConfig {

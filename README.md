@@ -228,7 +228,14 @@ loading the model (LM Studio ignores the value from the API).
 
 > **Avoid reasoning/thinking models** (e.g. QwQ, Gemma 4 QAT, DeepSeek-R1, o1/o3).
 > These emit a chain-of-thought that consumes the token budget before the JSON answer,
-> causing tools to fail with truncated output. Use instruct variants instead or deactivate reasoning/thinking in the model settings.
+> causing tools to fail with truncated output. Use instruct variants instead.
+>
+> If you can't pick a non-reasoning model (e.g. your provider only offers reasoning
+> ones), set **`reasoning = false`** in config or **`LX_REASONING=false`** — lx then
+> asks the provider to turn reasoning off. This is on by default. It's best-effort:
+> lx sends the disable request only where it's known safe (OpenRouter, Gemini,
+> DeepSeek, and Ollama), and some models (e.g. Gemini 2.5 Pro) can't fully disable it —
+> so a genuine non-reasoning model is still the better choice when you have one.
 
 ### Config file (optional)
 
