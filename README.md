@@ -96,7 +96,7 @@ irm https://raw.githubusercontent.com/BrunkenClaas/lx/main/scripts/install.ps1 |
 
 The installer puts binaries in `~/.local/bin` (Linux) or `%USERPROFILE%\bin`
 (Windows) and tells you if that directory needs adding to your PATH. Override the
-location with `LX_INSTALL_DIR`, or pin a version with `LX_VERSION=1.0.2`.
+location with `LX_INSTALL_DIR`, or pin a version with `LX_VERSION=1.0.3`.
 
 > Piping a script from the internet into your shell runs it with your
 > permissions. The script is short and does only what is described above — read
@@ -111,15 +111,15 @@ suite ZIP for your platform from [GitHub Releases](https://github.com/BrunkenCla
 and verify the checksum:
 
 ```sh
-sha256sum -c lx-coreutils-1.0.2-x86_64-unknown-linux-musl.zip.sha256
+sha256sum -c lx-coreutils-1.0.3-x86_64-unknown-linux-musl.zip.sha256
 ```
 
 #### Linux — install to PATH
 
 ```sh
 mkdir -p ~/.local/bin
-unzip lx-coreutils-1.0.2-x86_64-unknown-linux-musl.zip
-mv lx-coreutils-1.0.2-x86_64-unknown-linux-musl/lx* ~/.local/bin/
+unzip lx-coreutils-1.0.3-x86_64-unknown-linux-musl.zip
+mv lx-coreutils-1.0.3-x86_64-unknown-linux-musl/lx* ~/.local/bin/
 ```
 
 If `~/.local/bin` is not yet on your PATH, add this to `~/.bashrc` or `~/.zshrc`:
@@ -134,8 +134,8 @@ export PATH="$HOME/.local/bin:$PATH"
 # Unzip and copy binaries to a local bin folder
 $dest = "$env:USERPROFILE\bin"
 New-Item -ItemType Directory -Force $dest | Out-Null
-Expand-Archive lx-coreutils-1.0.2-x86_64-pc-windows-gnu.zip -DestinationPath .
-Copy-Item lx-coreutils-1.0.2-x86_64-pc-windows-gnu\*.exe $dest
+Expand-Archive lx-coreutils-1.0.3-x86_64-pc-windows-gnu.zip -DestinationPath .
+Copy-Item lx-coreutils-1.0.3-x86_64-pc-windows-gnu\*.exe $dest
 ```
 
 Then add `%USERPROFILE%\bin` to your PATH permanently (run once):
