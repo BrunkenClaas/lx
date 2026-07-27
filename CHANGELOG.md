@@ -6,6 +6,8 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-07-27
+
 ### Added
 
 - **Reasoning toggle (`llm.reasoning`, `LX_REASONING`), default off.** For providers
@@ -31,6 +33,9 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
   sent to the model, so such an entry also survives at the start or end of a list.
   (Filenames containing newlines remain unsupported by the line-delimited input
   format — use `--in <path>`.)
+- **Shell entry-point scripts are now executable on Linux checkouts.** The
+  executable bit was not tracked in the Git index, so scripts landed non-executable
+  after a fresh clone on Linux.
 
 ## [1.0.2] - 2026-07-17
 
