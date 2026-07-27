@@ -36,9 +36,16 @@ pub struct OllamaClient {
     /// applied as `min(per-tool max_tokens, ceiling)` and sent as
     /// `options.num_predict`.
     max_output_ceiling: u32,
+    /// When `true`, send `"think": false` to disable reasoning (config
+    /// `reasoning = false`, the default). Ollama's native endpoint honours this
+    /// top-level field for reasoning-capable models and ignores it for others.
+    think_off: bool,
 }
 
 impl OllamaClient {
+    // Constructor forwards config-resolved settings verbatim; the arg count
+    // mirrors the config surface rather than any avoidable complexity.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         base_url: String,
         model: String,
@@ -47,6 +54,7 @@ impl OllamaClient {
         verbose: bool,
         num_ctx: u32,
         max_output_ceiling: u32,
+        think_off: bool,
     ) -> Self {
         OllamaClient {
             url: Self::chat_url(&base_url),
@@ -56,6 +64,7 @@ impl OllamaClient {
             verbose,
             num_ctx,
             max_output_ceiling,
+            think_off,
         }
     }
 
@@ -89,6 +98,10 @@ struct ChatRequest {
     /// Always `false` — the tools make a single blocking call and want the whole
     /// response at once.
     stream: bool,
+    /// `Some(false)` disables reasoning (config `reasoning = false`); omitted when
+    /// reasoning is allowed so the model's default applies.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    think: Option<bool>,
     options: Options,
 }
 
@@ -155,6 +168,7 @@ impl LlmClient for OllamaClient {
                 user_message,
             ],
             stream: false,
+            think: if self.think_off { Some(false) } else { None },
             options: Options {
                 num_ctx: self.num_ctx,
                 num_predict: self.effective_max_tokens(req.max_tokens),
@@ -291,6 +305,7 @@ mod tests {
                 images: None,
             }],
             stream: false,
+            think: None,
             options: Options {
                 num_ctx: 32_768,
                 num_predict: 768,
@@ -303,6 +318,35 @@ mod tests {
         assert!(json.contains("\"stream\":false"), "got: {json}");
         // Text-only message must not carry an `images` key.
         assert!(!json.contains("images"), "got: {json}");
+        // reasoning allowed (think: None) → the field is omitted entirely.
+        assert!(
+            !json.contains("think"),
+            "think must be omitted when None: {json}"
+        );
+    }
+
+    #[test]
+    fn think_false_serialized_when_reasoning_off() {
+        let body = ChatRequest {
+            model: "qwen3:8b".into(),
+            messages: vec![Message {
+                role: "user",
+                content: "hi".into(),
+                images: None,
+            }],
+            stream: false,
+            think: Some(false),
+            options: Options {
+                num_ctx: 32_768,
+                num_predict: 768,
+                temperature: 0.0,
+            },
+        };
+        let json = serde_json::to_string(&body).unwrap();
+        assert!(
+            json.contains("\"think\":false"),
+            "reasoning=off must send think:false: {json}"
+        );
     }
 
     #[test]
@@ -315,6 +359,7 @@ mod tests {
             false,
             32_768,
             4096,
+            true,
         );
         assert_eq!(c.effective_max_tokens(768), 768); // under ceiling
         assert_eq!(c.effective_max_tokens(8192), 4096); // clamped to ceiling

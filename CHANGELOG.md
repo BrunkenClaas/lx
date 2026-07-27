@@ -8,6 +8,13 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Added
 
+- **Reasoning toggle (`llm.reasoning`, `LX_REASONING`), default off.** For providers
+  that only offer reasoning models — or when reasoning wastes the output budget — lx
+  now asks the provider to disable reasoning. It's best-effort: the disable request is
+  sent only where verified safe (OpenRouter, Gemini, DeepSeek, and Ollama natively);
+  providers that reject it (Anthropic, Groq) are sent nothing, so a working request is
+  never broken. Set `reasoning = true` to allow reasoning. A genuine non-reasoning
+  model is still preferable when available.
 - **One-line install scripts.** `scripts/install.sh` (Linux, x86_64 + aarch64
   incl. 64-bit Raspberry Pi OS) and `scripts/install.ps1` (Windows) download the
   latest prebuilt release for the host platform, verify its SHA-256 checksum, and
