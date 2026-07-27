@@ -7,12 +7,19 @@ use crate::LlmClient;
 /// The provider-specific JSON body fragment that disables reasoning, for the
 /// OpenAI-compatible (`/chat/completions`) clients.
 ///
-/// Returns `Some(object)` **only** where the field is verified safe (honoured or
-/// silently ignored, never a 400) as of the providers checked 2026-07-22:
-///   - OpenRouter → `{"reasoning": {"exclude": true}}` (ignored on non-reasoning models)
-///   - Gemini (OpenAI-compat) → `{"reasoning_effort": "none"}` (2.5 Flash; Pro/3.x can't
-///     disable but ignore the field)
-///   - DeepSeek → `{"thinking": {"type": "disabled"}}`
+/// Returns `Some(object)` **only** where the field is verified to actually STOP
+/// reasoning (not merely hide it) and is safe to send (honoured or ignored, never a
+/// 400 except on mandatory-reasoning models). Fields checked against provider docs
+/// 2026-07-27:
+///   - OpenRouter → `{"reasoning": {"effort": "none"}}` — *"Disables reasoning
+///     entirely."* NOTE: **not** `exclude: true`, which only hides the chain-of-thought
+///     while the model keeps reasoning and burning completion tokens — that would not
+///     fix the output-budget truncation this feature exists to prevent. (OpenRouter
+///     flags some models `"mandatory": true` and rejects `effort:"none"` on them; that
+///     400 is inherent and covered by the best-effort contract.)
+///   - Gemini (OpenAI-compat) → `{"reasoning_effort": "none"}` (2.5 Flash → budget 0;
+///     2.5 Pro can't fully disable but ignores/floors the field)
+///   - DeepSeek → `{"thinking": {"type": "disabled"}}` — genuine non-thinking mode
 ///
 /// Returns `None` for every other provider — crucially Anthropic and Groq, which
 /// **reject** a disable field with HTTP 400. Sending nothing there never breaks a
@@ -21,7 +28,7 @@ use crate::LlmClient;
 /// `think: false` directly.) Only called when `config.llm.reasoning == false`.
 fn openai_reasoning_off_fragment(provider: &Provider) -> Option<serde_json::Value> {
     match provider {
-        Provider::OpenRouter => Some(serde_json::json!({"reasoning": {"exclude": true}})),
+        Provider::OpenRouter => Some(serde_json::json!({"reasoning": {"effort": "none"}})),
         Provider::Gemini => Some(serde_json::json!({"reasoning_effort": "none"})),
         Provider::DeepSeek => Some(serde_json::json!({"thinking": {"type": "disabled"}})),
         // Anthropic/Groq 400 on a disable field; OpenAI's floor is "minimal" (not
@@ -178,9 +185,10 @@ mod tests {
         assert!(openai_reasoning_off_fragment(&Provider::OpenRouter).is_some());
         assert!(openai_reasoning_off_fragment(&Provider::Gemini).is_some());
         assert!(openai_reasoning_off_fragment(&Provider::DeepSeek).is_some());
-        // OpenRouter's exact shape.
+        // OpenRouter's exact shape: effort:"none" (fully disables reasoning), NOT
+        // exclude:true (which only hides it while the model keeps burning tokens).
         let f = openai_reasoning_off_fragment(&Provider::OpenRouter).unwrap();
-        assert_eq!(f, serde_json::json!({"reasoning": {"exclude": true}}));
+        assert_eq!(f, serde_json::json!({"reasoning": {"effort": "none"}}));
 
         // Providers that 400 on a disable field, or have no safe one → None.
         // This is the guard against breaking a working request.

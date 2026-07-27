@@ -6,6 +6,17 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-07-27
+
+### Fixed
+
+- **`reasoning = false` now actually disables reasoning on OpenRouter** (was only
+  hiding it). 1.0.3 sent `reasoning: {exclude: true}`, which hides the chain-of-thought
+  in the response but lets the model keep reasoning and consuming the output-token
+  budget — so a long reasoning pass could still truncate the JSON answer, the exact
+  problem the toggle exists to prevent. It now sends `reasoning: {effort: "none"}`,
+  which disables reasoning entirely. Gemini, DeepSeek, and Ollama were already correct.
+
 ## [1.0.3] - 2026-07-27
 
 ### Added

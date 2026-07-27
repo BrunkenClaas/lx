@@ -760,8 +760,10 @@ tokens burn the tight per-tool output budget before the answer — on some provi
 2.5 Flash) that silently truncates the response, the same failure class as the `num_ctx`
 bug. When `reasoning = false`, each client sends the provider's disable-reasoning field —
 but **only where that field is verified safe** (honoured or silently ignored, never a
-`400`): OpenRouter (`reasoning:{exclude:true}`), Gemini (`reasoning_effort:"none"`),
-DeepSeek (`thinking:{type:"disabled"}`), and Ollama natively (`think:false`). Providers
+`400`): OpenRouter (`reasoning:{effort:"none"}` — which *disables* reasoning, unlike
+`exclude:true` which only hides it while the model keeps consuming tokens), Gemini
+(`reasoning_effort:"none"`), DeepSeek (`thinking:{type:"disabled"}`), and Ollama natively
+(`think:false`). Providers
 that **reject** a disable field — Anthropic and Groq return `400` — are sent **nothing**,
 so a working request is never broken; OpenAI's floor is `"minimal"` (not truly off) and is
 likewise left alone. "Off" is therefore **best-effort per provider**. Like `num_ctx`, this
