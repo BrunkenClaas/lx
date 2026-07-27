@@ -380,11 +380,11 @@ mod tests {
         assert!(!json.contains("reasoning"), "clean body: {json}");
 
         // OpenRouter-style fragment → keys spliced into the top-level object.
-        let frag = serde_json::json!({"reasoning": {"exclude": true}});
+        let frag = serde_json::json!({"reasoning": {"effort": "none"}});
         let v = merge_reasoning_off(&base, Some(&frag)).unwrap();
         let json = serde_json::to_string(&v).unwrap();
         assert!(
-            json.contains("\"reasoning\":{\"exclude\":true}"),
+            json.contains("\"reasoning\":{\"effort\":\"none\"}"),
             "got: {json}"
         );
         // Original fields survive the merge.
