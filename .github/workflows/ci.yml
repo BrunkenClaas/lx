@@ -99,13 +99,16 @@ jobs:
         # Install only the compiler this leg needs (smaller download = smaller
         # flake surface), and wrap apt in a retry + step timeout so a stalled
         # Ubuntu mirror fails fast and retries instead of hanging to the job
-        # timeout. aarch64-musl needs both musl-tools and the gnu cross-gcc (the
-        # linker, see the CARGO_TARGET_..._LINKER env above).
+        # timeout. aarch64-musl needs: musl-tools, the gnu cross-gcc (the linker,
+        # see the CARGO_TARGET_..._LINKER env above), AND libc6-dev-arm64-cross —
+        # the aarch64 libc headers `ring`'s C build (curve25519.c) compiles against.
+        # That header package is a *recommended* dep of gcc-aarch64-linux-gnu, so
+        # `--no-install-recommends` drops it unless we name it explicitly.
         timeout-minutes: 10
         run: |
           case "${{ matrix.target }}" in
             x86_64-unknown-linux-musl)  pkgs="musl-tools" ;;
-            aarch64-unknown-linux-musl) pkgs="musl-tools gcc-aarch64-linux-gnu" ;;
+            aarch64-unknown-linux-musl) pkgs="musl-tools gcc-aarch64-linux-gnu libc6-dev-arm64-cross" ;;
             x86_64-pc-windows-gnu)      pkgs="gcc-mingw-w64" ;;
             *) echo "unknown target ${{ matrix.target }}"; exit 1 ;;
           esac
