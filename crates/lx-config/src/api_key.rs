@@ -27,7 +27,7 @@ pub fn api_key() -> Result<String, LxError> {
 
     Err(LxError::ConfigAuth(
         "no API key found; set LX_API_KEY=<your-key> or store it with:\n  \
-         Windows: cmdkey /add:lx-api-key /user:lx /pass:<key>\n  \
+         Windows: cmdkey /generic:lx-api-key /user:lx /pass:<key>\n  \
          Linux:   keyctl add user lx-api-key <key> @u"
             .to_string(),
     ))
@@ -54,7 +54,7 @@ pub fn provider_key_hint(provider: &Provider) -> String {
         "no API key found for provider '{provider}'\n  \
          hint: set LX_API_KEY=<your-key>  (get one at {where_to_get})\n  \
          or store it with:\n  \
-         Windows: cmdkey /add:lx-api-key /user:lx /pass:<key>\n  \
+         Windows: cmdkey /generic:lx-api-key /user:lx /pass:<key>\n  \
          Linux:   keyctl add user lx-api-key <key> @u{extra}"
     )
 }
@@ -63,7 +63,10 @@ pub fn provider_key_hint(provider: &Provider) -> String {
 
 /// Attempt to read the API key from the OS credential store.
 /// Returns `None` if the store is unavailable or the entry does not exist.
-fn read_from_credential_store() -> Option<String> {
+///
+/// Reachable from `Config::resolve_api_key` (the client path) so the credential
+/// store is actually consulted for real requests, not only by `api_key()`.
+pub(crate) fn read_from_credential_store() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
         windows_cred_read()
@@ -79,23 +82,14 @@ fn read_from_credential_store() -> Option<String> {
 }
 
 // ── Windows Credential Manager ─────────────────────────────────────────────────
-// Uses the Win32 CredRead API via windows-sys.
-// lx-core already depends on windows-sys; we re-use the transitive dep here
-// rather than adding it directly to lx-config's Cargo.toml — the features we
-// need (Win32_Security_Credentials) are not yet in lx-core's feature list,
-// so we fall back to a no-op for now and document the limitation.
-//
-// A future PR can add `Win32_Security_Credentials` to lx-core's windows-sys
-// features and call CredReadW here.
+// The Win32 `CredReadW` call is `unsafe`, so it lives in `lx_core::platform`
+// (the one crate permitted `unsafe`). lx-config stays `#![forbid(unsafe_code)]`
+// and calls the safe wrapper. Store the key with:
+//   cmdkey /generic:lx-api-key /user:lx /pass:<key>
 
 #[cfg(target_os = "windows")]
 fn windows_cred_read() -> Option<String> {
-    // Implementation requires Win32_Security_Credentials feature in windows-sys.
-    // lx-core currently only enables Win32_System_Console and Win32_Globalization.
-    // Rather than add a dependency here (lx-config must stay forbid(unsafe_code)),
-    // we document that the credential store path requires the user to use LX_API_KEY.
-    // This is the safe, conservative choice — the env-var path works on all platforms.
-    None
+    lx_core::platform::read_os_credential("lx-api-key")
 }
 
 // ── Linux kernel keyring ──────────────────────────────────────────────────────
