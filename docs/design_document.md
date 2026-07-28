@@ -339,9 +339,12 @@ all `#[serde(default)]`) from layered sources and validates it. Key points:
   user config (`config_dir()/config.toml`) → compiled defaults.
 - **Forward compatibility** — unknown TOML sections produce a stderr warning, not an
   abort. Unknown `LX_*` numeric values warn and are ignored.
-- **API key never from files** — `resolve_api_key()` reads `LX_API_KEY` (or an
-  injected value); the `api_key` field is `#[serde(skip)]`. Secret-looking keys in
-  `.lx.toml` are stripped with a warning.
+- **API key never from files** — `resolve_api_key()` reads `LX_API_KEY`, then an
+  injected value, then the **OS credential store** (Windows Credential Manager via
+  `CredReadW`, Linux kernel keyring via `keyctl`); the `api_key` field is
+  `#[serde(skip)]`. Secret-looking keys in `.lx.toml` are stripped with a warning.
+  The `unsafe` `CredReadW` FFI lives in `lx_core::platform` (the sole `unsafe`
+  crate); `lx-config` calls the safe wrapper and stays `#![forbid(unsafe_code)]`.
 - **Typed helpers** in `types.rs`: `Provider` (10 named variants: `ollama`,
   `lmstudio`, `anthropic`, `openai`, `gemini`, `groq`, `openrouter`, `mistral`,
   `deepseek`, `azure`; see `Provider::default_base_url()` and
@@ -1547,6 +1550,8 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-07-28 | API key now resolved from the OS credential store on the client path (was orphaned); Windows `CredReadW` FFI added in `lx_core::platform`. §4 (lx-config key resolution). | BrunkenClaas |
+| 2026-07-27 | Reasoning-off field for OpenRouter corrected `exclude:true` → `effort:"none"` (the former only hides reasoning, doesn't stop it). §7.3. | BrunkenClaas |
 | 2026-07-27 | Reasoning toggle (`llm.reasoning`, off by default): second per-provider body divergence, best-effort disable-reasoning field. §7.3, §7.3.1, config table. | BrunkenClaas |
 | 2026-07-20 | Documented the one-line install scripts (`scripts/install.{sh,ps1}`). §6.4. | BrunkenClaas |
 | 2026-07-17 | Ollama switched to its native `/api/chat` endpoint so `num_ctx` is honored — the first deliberate break from the uniform-body rule. §7.3. | BrunkenClaas |

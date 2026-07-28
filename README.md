@@ -192,7 +192,29 @@ export LX_MODEL=claude-opus-4-8        # override default model
 export LX_BASE_URL=https://...         # custom endpoint (Azure, Bedrock, Vertex…)
 ```
 
-**API keys must never be stored in the config file** — use env vars or the OS credential store.
+**API keys must never be stored in the config file** — use an env var or the OS
+credential store. lx resolves the key in this order: `LX_API_KEY` → OS credential
+store.
+
+To keep the key out of your shell history and dotfiles, store it in the OS
+credential store under the name `lx-api-key`:
+
+```sh
+# Linux (kernel keyring; @u = user keyring, persists across sessions):
+keyctl add user lx-api-key "sk-..." @u
+
+# Windows (Credential Manager; must be a *generic* credential):
+cmdkey /generic:lx-api-key /user:lx /pass:sk-...
+```
+
+lx reads this automatically when `LX_API_KEY` is unset — no config needed. (The key
+is never read from a config file: config-file secrets are actively filtered out, so
+a synced dotfile can't leak one.)
+
+> **Note (Linux keyring persistence):** the kernel user keyring (`@u`) is tied to
+> your login session/UID. If keys vanish after a reboot or across a bare `sudo`,
+> your distro may not link the user keyring for non-login shells — re-add it, or use
+> `LX_API_KEY` from a `chmod 600` file sourced in your shell profile.
 
 ### Provider defaults
 

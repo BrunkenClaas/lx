@@ -198,6 +198,71 @@ fn windows_locale() -> Option<String> {
     }
 }
 
+// ── OS credential store (Windows Credential Manager) ──────────────────────────
+
+/// Read a generic credential from the Windows Credential Manager by target name.
+///
+/// Returns the credential blob decoded as UTF-8 (trimmed), or `None` if the entry
+/// does not exist, the platform is not Windows, or the blob is not valid UTF-8.
+/// This is the safe wrapper over `CredReadW`; the `unsafe` FFI is confined here in
+/// `platform.rs` (the one crate permitted `unsafe`), so callers like `lx-config`
+/// stay `#![forbid(unsafe_code)]`. On non-Windows targets this is a no-op returning
+/// `None` — the Linux kernel keyring is read separately by the caller.
+pub fn read_os_credential(target: &str) -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        windows_credential_read(target)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = target;
+        None
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_credential_read(target: &str) -> Option<String> {
+    use windows_sys::Win32::Security::Credentials::{
+        CredFree, CredReadW, CREDENTIALW, CRED_TYPE_GENERIC,
+    };
+
+    // CredReadW takes a wide, NUL-terminated target name.
+    let target_w: Vec<u16> = target.encode_utf16().chain(std::iter::once(0)).collect();
+
+    let mut cred_ptr: *mut CREDENTIALW = std::ptr::null_mut();
+
+    // SAFETY: `target_w` is a valid NUL-terminated UTF-16 buffer owned for the
+    // duration of the call. `cred_ptr` is a valid out-pointer. On success CredReadW
+    // allocates a CREDENTIALW that we must release with CredFree (done below); on
+    // failure it leaves `cred_ptr` untouched (null) and we return None.
+    let ok = unsafe { CredReadW(target_w.as_ptr(), CRED_TYPE_GENERIC, 0, &mut cred_ptr) };
+    if ok == 0 || cred_ptr.is_null() {
+        return None;
+    }
+
+    // SAFETY: CredReadW reported success and a non-null pointer, so `*cred_ptr` is a
+    // valid CREDENTIALW. CredentialBlob points to `CredentialBlobSize` bytes (may be
+    // zero). We copy the bytes out before freeing the structure.
+    let value = unsafe {
+        let cred = &*cred_ptr;
+        let len = cred.CredentialBlobSize as usize;
+        let bytes = if len == 0 || cred.CredentialBlob.is_null() {
+            Vec::new()
+        } else {
+            std::slice::from_raw_parts(cred.CredentialBlob, len).to_vec()
+        };
+        CredFree(cred_ptr as *const _);
+        bytes
+    };
+
+    let s = String::from_utf8(value).ok()?.trim().to_string();
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
+}
+
 /// Extract a 2-letter language code from a POSIX locale string like "en_US.UTF-8".
 fn extract_lang_from_posix(locale: &str) -> String {
     let code = locale
@@ -362,5 +427,13 @@ mod tests {
     #[test]
     fn os_returns_known_value() {
         assert!(matches!(os(), "linux" | "windows" | "macos"));
+    }
+
+    #[test]
+    fn read_os_credential_missing_entry_is_none_not_panic() {
+        // A target that will not exist must return None cleanly (and on non-Windows
+        // the function is a no-op None). The FFI path must never panic on a miss.
+        let v = read_os_credential("lx-api-key-definitely-not-present-xyz");
+        assert!(v.is_none());
     }
 }

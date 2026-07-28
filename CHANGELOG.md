@@ -6,6 +6,18 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Fixed
+
+- **OS credential store now actually works for API keys.** The README promised
+  keys could live in the OS credential store, but the client path never consulted
+  it — the keyring reader was orphaned, so a key stored with `keyctl` (Linux) or
+  `cmdkey` (Windows) was never found and lx reported "no API key". `resolve_api_key`
+  now falls back to the credential store after `LX_API_KEY`. Windows Credential
+  Manager reads are implemented via `CredReadW` (the `unsafe` FFI lives in
+  `lx-core::platform`; `lx-config` stays `#![forbid(unsafe_code)]`). The stored-key
+  hints also corrected `cmdkey /add:` → `cmdkey /generic:` (a generic credential is
+  what `CredReadW` looks up), and the README now documents how to store the key.
+
 ## [1.0.4] - 2026-07-27
 
 ### Fixed

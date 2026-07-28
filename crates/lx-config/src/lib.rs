@@ -230,16 +230,23 @@ impl Config {
             .unwrap_or("")
     }
 
-    /// Resolve the API key: `LX_API_KEY` env → OS credential store.
-    /// Returns `None` if neither source has a key (tools call `api_key::api_key()`
-    /// directly when they need an error; this variant is used by lx-llm which
-    /// already has its own error path).
+    /// Resolve the API key, in priority order:
+    ///   1. `LX_API_KEY` environment variable
+    ///   2. `llm.api_key` set programmatically (never loaded from config files —
+    ///      the `#[serde(skip)]` field; config-file secrets are filtered out)
+    ///   3. OS credential store (Windows Credential Manager / Linux kernel keyring)
+    ///
+    /// Returns `None` if no source has a key. Used by lx-llm on the client path,
+    /// which has its own error message; `api_key()` is the variant that returns a
+    /// ready-made `ConfigAuth` error. Both now consult the credential store, so
+    /// `cmdkey`/`keyctl`-stored keys work for real requests.
     pub fn resolve_api_key(&self) -> Option<String> {
         std::env::var("LX_API_KEY")
             .ok()
             .filter(|k| !k.trim().is_empty())
             .map(|k| k.trim().to_string())
             .or_else(|| self.llm.api_key.clone())
+            .or_else(crate::api_key::read_from_credential_store)
     }
 }
 
