@@ -6,6 +6,8 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-08-01
+
 ### Fixed
 
 - **OS credential store now actually works for API keys.** The README promised
