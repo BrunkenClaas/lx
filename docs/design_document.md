@@ -1550,6 +1550,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-01 | Released 1.0.5 (all crates 1.0.4→1.0.5; suite label stays `2026-07`). Bundled the credential-store fix. | BrunkenClaas |
 | 2026-07-28 | API key now resolved from the OS credential store on the client path (was orphaned); Windows `CredReadW` FFI added in `lx_core::platform`. §4 (lx-config key resolution). | BrunkenClaas |
 | 2026-07-27 | Reasoning-off field for OpenRouter corrected `exclude:true` → `effort:"none"` (the former only hides reasoning, doesn't stop it). §7.3. | BrunkenClaas |
 | 2026-07-27 | Reasoning toggle (`llm.reasoning`, off by default): second per-provider body divergence, best-effort disable-reasoning field. §7.3, §7.3.1, config table. | BrunkenClaas |
