@@ -546,6 +546,32 @@ Two release pipelines exist:
   target containing all binaries plus the user-facing documents (see §6.4).
   Each ZIP has a matching `.sha256` checksum.
 
+#### Versioning policy
+
+All 79 crates share one version, bumped in lockstep. Between releases, `main`
+carries a **`-dev` pre-release suffix** so a `--version` from a self-built `main`
+binary is honestly distinguishable from a real release (`1.0.6-dev`, not a bare
+`1.0.6` that was never tagged or built). The version flows into `--version`
+automatically — every tool passes `env!("CARGO_PKG_VERSION")`; nothing is hardcoded.
+
+**Release ritual (strict order):**
+1. On a `release/X.Y.Z` branch, bump every crate from `X.Y.Z-dev` → plain `X.Y.Z`,
+   regenerate `Cargo.lock`, move CHANGELOG `[Unreleased]` → `[X.Y.Z] - <date>`,
+   update the version refs in `README.md` and the install scripts. PR → full CI →
+   merge.
+2. Tag the merged commit `suite-vX.Y.Z` (never before merge — the release must build
+   from a CI-verified, plain-version commit). This triggers `release-coreutils.yml`.
+3. **Immediately after tagging**, on a separate PR, bump `main` to the next
+   `X.Y.(Z+1)-dev` (or the next minor/major `-dev` if that's what's coming). This is
+   what keeps `main` honestly marked between releases — do not skip it.
+
+`README.md` and the install scripts always reference the **latest released** version,
+never `-dev` — they tell a user what to install.
+
+**Suite label** (`LX_SUITE_LABEL`, `YYYY-MM`) is independent of the crate version and
+marks the suite *generation*, not the release. Bump it only on a minor/major release
+(a new suite epoch), **not** on patches — it stayed `2026-07` across all of 1.0.x.
+
 ### 6.3 Supported platforms
 
 | Platform | Minimum |
@@ -1550,6 +1576,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-01 | Adopted `-dev` between-release versioning (`main` now `1.0.6-dev`); documented the versioning policy + release ritual (§6.2, CONTRIBUTING) incl. the suite-label rule. | BrunkenClaas |
 | 2026-08-01 | Released 1.0.5 (all crates 1.0.4→1.0.5; suite label stays `2026-07`). Bundled the credential-store fix. | BrunkenClaas |
 | 2026-07-28 | API key now resolved from the OS credential store on the client path (was orphaned); Windows `CredReadW` FFI added in `lx_core::platform`. §4 (lx-config key resolution). | BrunkenClaas |
 | 2026-07-27 | Reasoning-off field for OpenRouter corrected `exclude:true` → `effort:"none"` (the former only hides reasoning, doesn't stop it). §7.3. | BrunkenClaas |

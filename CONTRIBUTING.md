@@ -66,14 +66,29 @@ git push origin lxcommit-v1.2.0
 
 ### Full suite release
 
-Tag with `suite-vX.Y.Z` and push. GitHub Actions (`release-coreutils.yml`) builds
-the entire workspace, assembles one ZIP per target, and creates a GitHub
-Release with all ZIPs and `.sha256` checksums.
+All 79 crates share one version, bumped in lockstep. Between releases `main` carries
+a `-dev` suffix (e.g. `1.0.6-dev`) so a self-built `main` binary's `--version` is
+distinguishable from a real release. The ritual, in strict order:
 
-```sh
-git tag suite-v1.0.0
-git push origin suite-v1.0.0
-```
+1. On a `release/X.Y.Z` branch: bump every crate `X.Y.Z-dev` → plain `X.Y.Z`,
+   regenerate `Cargo.lock` (`cargo build`), move `CHANGELOG.md` `[Unreleased]` →
+   `[X.Y.Z] - <date>`, and update the version refs in `README.md` and
+   `scripts/install.{sh,ps1}`. Open a PR, let full CI pass, merge.
+2. Tag the **merged** commit and push — never before merge, so the release builds
+   from a CI-verified, plain-version commit:
+   ```sh
+   git tag suite-vX.Y.Z
+   git push origin suite-vX.Y.Z
+   ```
+   GitHub Actions (`release-coreutils.yml`) builds the entire workspace, assembles
+   one ZIP per target, and creates a GitHub Release with all ZIPs and `.sha256`
+   checksums.
+3. **Immediately after tagging**, on a separate PR, bump `main` to the next
+   `-dev` (e.g. `1.0.7-dev`). Don't skip this — it's what keeps `main` honestly
+   marked. `README.md`/install scripts stay at the just-released version.
+
+`LX_SUITE_LABEL` (`YYYY-MM`, in `lx-core/src/version.rs`) marks the suite generation,
+not the release — bump it only on a minor/major, not on patches.
 
 ### Local suite ZIP (for testing before tagging)
 

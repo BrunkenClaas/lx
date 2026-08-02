@@ -1,6 +1,6 @@
 [package]
 name = "lxcommit"
-version = "1.0.5"
+version = "1.0.6-dev"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Generate a Conventional Commit message from a git diff"
