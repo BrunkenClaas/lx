@@ -61,6 +61,125 @@ fn llm_is_always_called_even_without_literal_keyword_overlap() {
     );
 }
 
+/// A `find .`-style path list: many short, self-contained records.
+fn path_list(n: usize) -> String {
+    let mut s = String::new();
+    for i in 0..n {
+        // A handful of genuinely build-related entries scattered late in the
+        // list, so they only survive if sampling covers the whole input.
+        if i == 700 {
+            s.push_str("./crates/lx-core/build.rs\n");
+        } else if i == 900 {
+            s.push_str("./scripts/build-release-zip.sh\n");
+        } else {
+            s.push_str(&format!("./target/debug/.fingerprint/dep-lib-crate-{i}\n"));
+        }
+    }
+    s
+}
+
+#[test]
+fn line_oriented_input_gets_far_more_candidates_than_block_budget() {
+    // Regression test for the `find . | lxgrep` failure: on a path list every
+    // line is a whole record, so the context-block strategy spent ~5 lines of
+    // budget per candidate and only ~40 records ever reached the model. The
+    // line-oriented path must put an order of magnitude more records in front
+    // of it, from the same input.
+    let client = MockLlmClient::returning(mock_empty_response());
+    let config = Config::default();
+    let content = path_list(2000);
+    let _ = run(
+        "build related stuff",
+        &[("<stdin>", &content)],
+        &config,
+        &client,
+    )
+    .unwrap();
+
+    let req = client.last_request();
+    let candidate_lines = req.user.lines().filter(|l| l.starts_with("./")).count();
+    assert!(
+        candidate_lines > 200,
+        "line-oriented input must send far more than the 40-block budget, got {candidate_lines}"
+    );
+}
+
+#[test]
+fn line_oriented_sampling_reaches_records_late_in_the_list() {
+    // The old block budget was filled by the first ~40 blocks, so a relevant
+    // record near the end of a long list could never reach the model regardless
+    // of the query. Even coverage must make late records visible.
+    let client = MockLlmClient::returning(mock_empty_response());
+    let config = Config::default();
+    let content = path_list(2000);
+    let _ = run(
+        "build related stuff",
+        &[("<stdin>", &content)],
+        &config,
+        &client,
+    )
+    .unwrap();
+
+    let req = client.last_request();
+    assert!(
+        req.user.contains("build.rs") || req.user.contains("build-release-zip.sh"),
+        "records late in the list must be reachable by sampling"
+    );
+}
+
+#[test]
+fn source_code_still_uses_context_blocks() {
+    // Guard against the heuristic firing on real content. Source code needs its
+    // surrounding lines to be interpretable, so a long code file must keep the
+    // block strategy — the model should see more than the single hit line.
+    let client = MockLlmClient::returning(mock_empty_response());
+    let config = Config::default();
+    let mut code = String::new();
+    for i in 0..200 {
+        code.push_str(&format!("fn function_number_{i}() {{\n"));
+        code.push_str("    let value = compute();\n");
+        code.push_str("}\n");
+        code.push('\n');
+    }
+    let _ = run("compute", &[("big.rs", &code)], &config, &client).unwrap();
+
+    let req = client.last_request();
+    // Context blocks keep the `fn ...` line adjacent to its body; a
+    // line-oriented split would have sent bare `let value = compute();` lines.
+    assert!(
+        req.user.contains("fn function_number_"),
+        "source code must keep context blocks, not be split into bare lines"
+    );
+}
+
+#[test]
+fn prose_with_blank_lines_is_not_line_oriented() {
+    // Paragraph-separated prose must not be treated as a record list even when
+    // its lines are short.
+    let client = MockLlmClient::returning(mock_empty_response());
+    let config = Config::default();
+    let mut prose = String::new();
+    for i in 0..100 {
+        prose.push_str(&format!("Short sentence number {i}.\n"));
+        prose.push('\n');
+    }
+    let _ = run("sentence", &[("notes.md", &prose)], &config, &client).unwrap();
+    // Reaching the LLM at all is the contract; the assertion that matters is
+    // that this did not panic or short-circuit on the blank-line path.
+    assert_eq!(client.call_count(), 1);
+}
+
+#[test]
+fn short_line_oriented_input_is_unaffected() {
+    // Below the minimum line count everything fits in the block budget anyway,
+    // so behaviour must be unchanged.
+    let client = MockLlmClient::returning(mock_empty_response());
+    let config = Config::default();
+    let content = "./a.rs\n./b.rs\n./c.rs\n";
+    let _ = run("rust files", &[("<stdin>", content)], &config, &client).unwrap();
+    assert_eq!(client.call_count(), 1);
+}
+
 #[test]
 fn empty_query_returns_bad_usage() {
     let client = MockLlmClient::returning(mock_response());

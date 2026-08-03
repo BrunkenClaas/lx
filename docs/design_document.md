@@ -892,6 +892,42 @@ values raised together.
   stderr. Token logging and retry logging are gated on the same `verbose` flag
   passed to `client_from_config(config, verbose)`.
 
+### 7.5 Input sampling — volume, never relevance
+
+Tools that can be handed more input than fits one call (`lxgrep`, `lxlog`,
+`lxfind`, `lxdupe`, `lxpull`) sample it down locally before the LLM call. The
+governing rule:
+
+> **Local code decides *how much* content the model sees. The model decides what
+> is relevant. Local code must never decide that something is irrelevant.**
+
+An empty result must always come from the model, never from a local keyword
+filter. This has regressed twice — once as an outright keyword gate that skipped
+the LLM call entirely, once as a sampling budget so tight that it silently chose
+which candidates were eligible — so it is stated here rather than only in code
+comments.
+
+A sampling budget becomes a relevance gate whenever it discards candidates
+*before* the model can judge them. Two obligations follow:
+
+1. **Sample across the whole input, not just its head.** Keyword-matching lines
+   first (prioritisation, not filtering), then even coverage of the remainder, so
+   a relevant item late in a long input is still reachable.
+2. **Match the unit of sampling to the shape of the input.** Context lines around
+   a hit make a code or log excerpt interpretable, but on a record list (`find`
+   output, an ID list) every line is self-contained and its neighbours are
+   unrelated — spending a context window per candidate wastes most of the budget
+   and shrinks how many records the model may consider. `lxgrep` therefore
+   detects line-oriented input (many short, unindented, blank-line-free lines)
+   and switches to one-line candidates against a correspondingly larger budget.
+   The heuristic is deliberately conservative: misclassifying real source or
+   prose as a record list would strip context the model needs, so all conditions
+   must hold at once.
+
+When input is sampled down, the tool sets a `capped` flag and warns on stderr
+that results may be incomplete (tier 2 — see §9.2). Silence here is a correctness
+bug: a partial answer that looks complete is worse than a slow one.
+
 ---
 
 ## 8. Configuration Reference
@@ -1625,6 +1661,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-03 | New §7.5 "Input sampling — volume, never relevance": states the sampling contract that had regressed twice, requires sampling across the whole input, and requires the sampling unit to match the input shape (`lxgrep` line-oriented detection). | BrunkenClaas |
 | 2026-08-03 | Documented what the output-token caps are for (§7.3.2): latency/cost/pipe-safety, explicitly *not* task adherence; truncation as a correctness event; the deliberate decision against per-provider cap defaults; `lxconv`'s ~7–8 KB practical conversion ceiling. | BrunkenClaas |
 | 2026-08-01 | Adopted `-dev` between-release versioning (`main` now `1.0.6-dev`); documented the versioning policy + release ritual (§6.2, CONTRIBUTING) incl. the suite-label rule. | BrunkenClaas |
 | 2026-08-01 | Released 1.0.5 (all crates 1.0.4→1.0.5; suite label stays `2026-07`). Bundled the credential-store fix. | BrunkenClaas |
