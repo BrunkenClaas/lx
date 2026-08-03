@@ -561,6 +561,52 @@ mod tests {
         assert_eq!(cfg.output.color, "auto");
     }
 
+    /// The annotated template shipped in every release ZIP and cited by the
+    /// design document as authoritative. Embedded at compile time so this test
+    /// does not depend on the working directory.
+    const EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
+
+    #[test]
+    fn example_config_parses() {
+        // This file ships to users; a syntax error in it would otherwise reach
+        // a release unnoticed, since nothing else in the workspace reads it.
+        let cfg: Config = toml::from_str(EXAMPLE_CONFIG)
+            .expect("config.example.toml must be valid TOML that deserializes into Config");
+        validate(&cfg).expect("config.example.toml must pass validation");
+    }
+
+    #[test]
+    fn example_config_matches_compiled_defaults() {
+        // Every value the example sets is also the compiled default, so the two
+        // must stay in lock-step: changing a default without updating the
+        // example (or vice versa) ships contradictory documentation.
+        //
+        // `base_url` and `model` are deliberately left commented out in the
+        // example — empty means "use the provider's default" — so they come
+        // back as the defaults here too, and full equality is the right check.
+        let from_example: Config = toml::from_str(EXAMPLE_CONFIG).unwrap();
+        let defaults = Config::default();
+
+        assert_eq!(from_example.llm.provider, defaults.llm.provider);
+        assert_eq!(from_example.llm.base_url, defaults.llm.base_url);
+        assert_eq!(from_example.llm.model, defaults.llm.model);
+        assert_eq!(from_example.llm.timeout_secs, defaults.llm.timeout_secs);
+        assert_eq!(from_example.llm.max_retries, defaults.llm.max_retries);
+        assert_eq!(from_example.llm.num_ctx, defaults.llm.num_ctx);
+        assert_eq!(from_example.llm.reasoning, defaults.llm.reasoning);
+        assert_eq!(
+            from_example.limits.max_input_bytes,
+            defaults.limits.max_input_bytes
+        );
+        assert_eq!(
+            from_example.limits.max_output_tokens,
+            defaults.limits.max_output_tokens
+        );
+        assert_eq!(from_example.redact.level, defaults.redact.level);
+        assert_eq!(from_example.output.lang, defaults.output.lang);
+        assert_eq!(from_example.output.color, defaults.output.color);
+    }
+
     #[test]
     fn effective_url_and_model_use_provider_defaults() {
         let cfg = Config::default(); // provider=ollama, base_url="", model=""
