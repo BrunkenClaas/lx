@@ -6,6 +6,16 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Fixed
+
+- **`lxgrep` now states plainly that capped results are incomplete.** When the
+  input exceeded the search budget, the warning read "a sampled subset was
+  analysed", which is easy to read as a performance note rather than a
+  correctness one — results that were missing matches looked authoritative. The
+  warning now leads with "results are INCOMPLETE", says matching lines may be
+  missing, and suggests narrowing the input. Behaviour is unchanged; only the
+  wording is clearer.
+
 ## [1.0.5] - 2026-08-01
 
 ### Fixed

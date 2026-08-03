@@ -216,7 +216,9 @@ fn main() {
 
     if output.capped {
         lx_core::output::warn(
-            "input exceeded the search budget; a sampled subset was analysed — some lines were not searched",
+            "results are INCOMPLETE: input exceeded the search budget, so only a \
+             sampled subset was searched — matching lines may be missing. Narrow \
+             the input (e.g. exclude build/vendor directories) and re-run.",
         );
     }
 
