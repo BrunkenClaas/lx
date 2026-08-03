@@ -16,6 +16,18 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
   missing, and suggests narrowing the input. Behaviour is unchanged; only the
   wording is clearer.
 
+### Documentation
+
+- **Documented what the output-token caps are for.** `limits.max_output_tokens`
+  and the per-tool `max_tokens` budgets are for latency on local models, cost on
+  hosted ones, and pipe safety — *not* for task adherence: the cap truncates at
+  the sampler, the model never sees it, so a tight cap cannot make a model
+  terser or more schema-obedient (that comes from the prompt). Also records why
+  the cap is not split per provider, that a truncated reply is a correctness
+  event rather than a budget one, and that `lxconv` converts roughly 7–8 KB
+  before hitting the ceiling. New design-doc §7.3.2 plus expanded guidance in
+  `config.example.toml`. No behaviour change.
+
 ## [1.0.5] - 2026-08-01
 
 ### Fixed

@@ -127,6 +127,34 @@ max_input_bytes = 524288        # LX_MAX_INPUT_BYTES  (512 KiB)
 # output globally (e.g. to cut cost on a hosted provider).
 max_output_tokens = 4096        # LX_MAX_OUTPUT_TOKENS
 
+# When to tune this. The default suits most setups; there are two reasons to
+# lower it, and they have nothing to do with model quality — this cap truncates
+# the reply, it does not make a model terser (the model never sees the value,
+# so it writes the same answer and gets cut off). Brevity comes from the prompt.
+#
+#   Local models  — latency. Every output token is wall-clock time on your own
+#                   hardware. On a Raspberry Pi or a small GPU, 1024-2048 keeps
+#                   tools responsive. This does NOT help a weak model produce
+#                   better JSON: that is a *context* problem, see num_ctx above.
+#   Hosted models — cost. Output tokens usually dominate the bill. 2048 trims
+#                   spend across all 72 tools; at temperature 0.0 with tight
+#                   schemas most tools stay well under their budget anyway, so
+#                   an unused ceiling costs nothing.
+#
+# Because provider is a poor proxy for either concern (a workstation running a
+# 70B locally is faster than many hosted models; a cheap hosted 8B costs almost
+# nothing), lx does not switch this by provider. Set it per project in
+# ./.lx.toml, or per shell via LX_MAX_OUTPUT_TOKENS.
+#
+# Raising it above 4096 only has an effect where a tool's own budget is also
+# that high. Today only `lxconv` (whole-document format conversion) sits at
+# 4096; every other tool is lower, so raising this alone will not lengthen them.
+# `lxconv` converts roughly 7-8 KB of input before its reply hits the ceiling
+# and is truncated — for larger documents, convert in chunks, or raise BOTH this
+# value and the tool's budget. Truncation is reported on stderr, and the salvage
+# pass may recover a partial result, so check that warning before trusting output
+# of a large conversion.
+
 # Context window note for local models:
 # - Ollama: nothing to configure on the model side — lx sends `num_ctx` (see [llm]
 #   above, default 32768) on Ollama's native endpoint with every request.
