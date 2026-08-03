@@ -35,11 +35,67 @@ turn CI red on an otherwise-fine PR. To avoid that, a dev container is provided:
 
 ## Opening a PR
 
-1. `cargo fmt --all`
-2. `cargo clippy --workspace --all-targets -- -D warnings` — must be clean
-3. `cargo test --workspace` — must pass (eval tests with `#[ignore]` are fine)
-4. Update `CHANGELOG.md` for any user-visible change
-5. One tool per PR; one PR per tool
+The authoritative checklist is
+[`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) — it is
+filled in automatically when you open a PR, and it is the list CI enforces. Work
+through it rather than a copy here; this file deliberately does not duplicate it,
+because a duplicated checklist is one that drifts.
+
+Before you open the PR:
+
+```sh
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace                  # #[ignore] eval/system tests may stay ignored
+cargo deny check                        # only if dependencies changed
+cargo build --release -p lx<name>       # the binary users actually run
+```
+
+Note the scope: these are **workspace-wide** (`--all` / `--workspace`). The
+per-tool commands in §14 of the design document (`-p lx<name>`) are for finishing
+a single tool, not for clearing a PR — a change can be clean in its own crate and
+still break another.
+
+Then:
+
+- **One tool per PR; one PR per tool.** Keep unrelated changes out, even small ones.
+- **Update `CHANGELOG.md`** for any user-visible change (see the table below).
+- **Update `docs/design_document.md`** in the *same* PR for any architectural,
+  security, config, flag, or catalog change — plus an Appendix A row.
+
+### Which document to update when
+
+`CHANGELOG.md` records what **users** experience. `docs/design_document.md`
+records what **maintainers** must know. Appendix A records that the design
+document moved. "Last reviewed" records when someone checked the document still
+matches the code.
+
+| Your change | CHANGELOG | Design doc | Appendix A row | "Last reviewed" |
+|---|---|---|---|---|
+| User-visible behaviour (message, flag, output, exit code) | yes | only if architectural | — | — |
+| Architecture / security / config / flag / catalog | yes | yes | yes, same commit | yes |
+| New tool | yes | yes (§13 catalog) | yes | yes |
+| Docs-only clarification | if user-visible | yes | yes | judgement |
+| Internal refactor, no user-visible change | no | no | — | — |
+| Toolchain / dependency bump | yes | Appendix A only | yes | no |
+
+"Last reviewed" is **not** "last edited" — bump it when you have verified the
+document still describes the code, not for a typo fix.
+
+### After your PR is merged
+
+The head branch is deleted automatically on GitHub. Clean up locally:
+
+```sh
+git switch main
+git pull
+git branch -d <your-branch>    # lowercase -d refuses if unmerged — keep that safety
+git fetch --prune
+```
+
+Always cut the next branch from a freshly pulled `main`. Branches cut in parallel
+from an older `main` collide in `CHANGELOG.md`, since every PR inserts under the
+same `## [Unreleased]` heading.
 
 ## Adding a new tool
 

@@ -27,8 +27,14 @@ This file is part of the codebase, not a snapshot. Treat it like source:
   section here is updated.
 - **The code is the source of truth.** If this document and the code disagree, the
   code wins and this document is the bug. Fix it.
-- **Record notable revisions** in [Appendix A — Document changelog](#appendix-a--document-changelog).
-- **Update the "Last reviewed" date** at the top whenever you make a substantive pass.
+- **Every edit to this file gets an [Appendix A](#appendix-a--document-changelog)
+  row, in the same commit.** Not "notable" edits — every one. The row is what makes
+  a stale section findable later; deciding case-by-case is how rows get skipped.
+  (Pure typo/formatting fixes are the one exception.)
+- **Update the "Last reviewed" date** at the top when you have verified this
+  document still matches the code — not merely when you edited it. It answers
+  "when did someone last check this is true?", so an unrelated edit must not
+  refresh it.
 - Keep it self-contained. This is the only design document in the repository; do not
   introduce links to transient or external design notes that may disappear.
 
@@ -1616,8 +1622,14 @@ A new tool follows the same shape as every existing one. The rhythm:
    hyperfine --warmup 3 'target/release/lx<name> --help'   # cold start < 15 ms
    ```
    All must be clean. Commit as `feat(lx<name>): implement`.
-9. **Update this document** — add the tool to the right table in §13 and bump the
-   "Last reviewed" date.
+
+   These are **per-tool** commands, scoped with `-p`. They are not sufficient to
+   open a PR: a change can be clean in its own crate and still break another. The
+   PR checklist is workspace-wide (`--all` / `--workspace`) and lives in
+   [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md); see
+   also CONTRIBUTING.md §"Opening a PR".
+9. **Update this document** — add the tool to the right table in §13, add an
+   Appendix A row, and bump the "Last reviewed" date.
 
 ---
 
@@ -1661,6 +1673,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-03 | Contributor-process cleanup: CONTRIBUTING now defers to the PR template instead of duplicating a drifted checklist and carries the "which document to update when" table; "record notable revisions" → *every* edit gets an Appendix A row; "Last reviewed" redefined as verified-against-code, not last-edited; §14.8 now says the `-p` commands are per-tool, not a PR checklist. | BrunkenClaas |
 | 2026-08-03 | New §7.5 "Input sampling — volume, never relevance": states the sampling contract that had regressed twice, requires sampling across the whole input, and requires the sampling unit to match the input shape (`lxgrep` line-oriented detection). | BrunkenClaas |
 | 2026-08-03 | Documented what the output-token caps are for (§7.3.2): latency/cost/pipe-safety, explicitly *not* task adherence; truncation as a correctness event; the deliberate decision against per-provider cap defaults; `lxconv`'s ~7–8 KB practical conversion ceiling. | BrunkenClaas |
 | 2026-08-01 | Adopted `-dev` between-release versioning (`main` now `1.0.6-dev`); documented the versioning policy + release ritual (§6.2, CONTRIBUTING) incl. the suite-label rule. | BrunkenClaas |
