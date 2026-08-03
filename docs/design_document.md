@@ -1,6 +1,6 @@
 # LX Coreutils — Design Document
 
-**Status:** Living document · **Last reviewed:** 2026-07-12 · **Audience:** maintainers and contributors
+**Status:** Living document · **Last reviewed:** 2026-08-03 · **Audience:** maintainers and contributors
 
 LX Coreutils is a collection of **72 small, fast, LLM-powered command-line tools**
 for Linux and Windows. Each tool does exactly one thing, starts in single-digit
@@ -751,6 +751,7 @@ Every request a tool builds must satisfy (and tests assert) these invariants:
 - **Tight `max_tokens`**, set per tool (see the catalog in §13). The global config
   cap (`limits.max_output_tokens`, default 4096) and the per-tool constant both
   apply — the smaller wins (clamped in the client at request-build).
+  See §7.3.2 for what these caps are and are not for.
 - **Static, trusted system prompt** separated from **untrusted user data**. The
   system prompt is the only source of the task; for `untrusted` tools it explicitly
   instructs the model to ignore any instructions inside the data
@@ -834,6 +835,54 @@ material share of local-model failures after salvage; if so, scope it narrowly �
 opt-in config key, Ollama-only first, schema generated from the Rust `Output` structs
 (one source of truth), salvage layer untouched.
 
+#### 7.3.2 What the output caps are for (and what they are not)
+
+Two output-token caps apply to every call: the per-tool `MAX_TOKENS` constant and
+the global `limits.max_output_tokens` (default 4096). The smaller wins.
+
+**What they are for:**
+
+- **Latency on local models.** Every output token is wall-clock time on the user's
+  own hardware. This is the dominant reason to lower the cap on a Pi or a small GPU.
+- **Cost on hosted models.** Output tokens usually dominate the bill.
+- **Pipe safety.** A tool in a pipeline must not emit an unbounded blob into the
+  next stage; the cap is part of the contract with the downstream consumer.
+- **A truncation backstop**, not a formatting control (see below).
+
+**What they are explicitly *not* for:**
+
+- **They do not improve task adherence.** `max_tokens` truncates at the sampler; the
+  model never sees the value and does not plan around it. A tight cap does not make a
+  model terser — it produces the same reply, cut off mid-token. Brevity and schema
+  discipline come from the prompt (§7.2.1), `temperature = 0.0`, and few-shot
+  examples. Never lower a cap hoping to make a weak model behave.
+- **They do not compensate for a weak model.** Small-model JSON failures are almost
+  always *input* problems (context truncation — see the `num_ctx` case in §7.3) or
+  semantic ones (§11.3). Neither is affected by the output ceiling.
+
+**Truncation is a correctness event, not a budget event.** Because JSON validity is
+prompt-only (§7.3.1), a reply cut at the ceiling is invalid JSON. The salvage pass in
+`lx_llm::schema` may recover a partial result and warns on stderr — meaning a too-tight
+cap can yield a *silently incomplete* answer that looks complete. Tools whose output
+length scales with input (list- and document-producing tools) therefore need genuine
+headroom, not the tightest cap that passes tests.
+
+**No per-provider defaults.** lx deliberately does not vary these caps by provider.
+Provider is a poor proxy for either concern: a workstation running a 70B locally can
+outpace a hosted model, and a cheap hosted 8B costs almost nothing. Splitting the
+default by provider would optimise for the median of each category while being wrong
+at both tails, and would make the effective value depend on which provider is active —
+weakening `--dry-run` and `lx model` as sources of truth. Users tune the single knob to
+their actual constraint, per project in `./.lx.toml` or per shell via
+`LX_MAX_OUTPUT_TOKENS`. Revisit only on evidence that local models produce *worse*
+output at high caps (rambling past the schema rather than stopping) — that would be a
+capability argument and would justify a real split.
+
+**Raising the global ceiling alone changes nothing** unless a tool's own budget is
+also that high. Only `lxconv` currently sits at 4096; it converts roughly 7–8 KB of
+input before its reply hits the ceiling. Larger documents need chunking, or both
+values raised together.
+
 ### 7.4 Robustness
 
 - Retries on transient failures (429, 5xx, network) up to `max_retries` with
@@ -842,6 +891,42 @@ opt-in config key, Ollama-only first, schema generated from the Rust `Output` st
   LLM call, token counts after it, and retry-attempt logging during it — all to
   stderr. Token logging and retry logging are gated on the same `verbose` flag
   passed to `client_from_config(config, verbose)`.
+
+### 7.5 Input sampling — volume, never relevance
+
+Tools that can be handed more input than fits one call (`lxgrep`, `lxlog`,
+`lxfind`, `lxdupe`, `lxpull`) sample it down locally before the LLM call. The
+governing rule:
+
+> **Local code decides *how much* content the model sees. The model decides what
+> is relevant. Local code must never decide that something is irrelevant.**
+
+An empty result must always come from the model, never from a local keyword
+filter. This has regressed twice — once as an outright keyword gate that skipped
+the LLM call entirely, once as a sampling budget so tight that it silently chose
+which candidates were eligible — so it is stated here rather than only in code
+comments.
+
+A sampling budget becomes a relevance gate whenever it discards candidates
+*before* the model can judge them. Two obligations follow:
+
+1. **Sample across the whole input, not just its head.** Keyword-matching lines
+   first (prioritisation, not filtering), then even coverage of the remainder, so
+   a relevant item late in a long input is still reachable.
+2. **Match the unit of sampling to the shape of the input.** Context lines around
+   a hit make a code or log excerpt interpretable, but on a record list (`find`
+   output, an ID list) every line is self-contained and its neighbours are
+   unrelated — spending a context window per candidate wastes most of the budget
+   and shrinks how many records the model may consider. `lxgrep` therefore
+   detects line-oriented input (many short, unindented, blank-line-free lines)
+   and switches to one-line candidates against a correspondingly larger budget.
+   The heuristic is deliberately conservative: misclassifying real source or
+   prose as a record list would strip context the model needs, so all conditions
+   must hold at once.
+
+When input is sampled down, the tool sets a `capped` flag and warns on stderr
+that results may be incomplete (tier 2 — see §9.2). Silence here is a correctness
+bug: a partial answer that looks complete is worse than a slow one.
 
 ---
 
@@ -1576,6 +1661,8 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-03 | New §7.5 "Input sampling — volume, never relevance": states the sampling contract that had regressed twice, requires sampling across the whole input, and requires the sampling unit to match the input shape (`lxgrep` line-oriented detection). | BrunkenClaas |
+| 2026-08-03 | Documented what the output-token caps are for (§7.3.2): latency/cost/pipe-safety, explicitly *not* task adherence; truncation as a correctness event; the deliberate decision against per-provider cap defaults; `lxconv`'s ~7–8 KB practical conversion ceiling. | BrunkenClaas |
 | 2026-08-01 | Adopted `-dev` between-release versioning (`main` now `1.0.6-dev`); documented the versioning policy + release ritual (§6.2, CONTRIBUTING) incl. the suite-label rule. | BrunkenClaas |
 | 2026-08-01 | Released 1.0.5 (all crates 1.0.4→1.0.5; suite label stays `2026-07`). Bundled the credential-store fix. | BrunkenClaas |
 | 2026-07-28 | API key now resolved from the OS credential store on the client path (was orphaned); Windows `CredReadW` FFI added in `lx_core::platform`. §4 (lx-config key resolution). | BrunkenClaas |

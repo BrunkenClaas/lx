@@ -19,6 +19,21 @@ const CONTEXT_LINES: usize = 2;
 /// This is a cost guardrail only — it never decides relevance, only volume.
 const MAX_CANDIDATE_BLOCKS: usize = 40;
 
+/// Budget for line-oriented input (see [`looks_line_oriented`]). Each candidate
+/// is a single line with no context, so the same token spend covers far more
+/// candidates than the block budget does — 400 short lines is comparable in size
+/// to 40 five-line blocks.
+const MAX_CANDIDATE_LINES: usize = 400;
+
+/// A line-oriented input's lines must be no longer than this (on average) to
+/// qualify. Path lists, `ls` output and ID lists sit far below it; prose and
+/// source code sit above.
+const LINE_ORIENTED_MAX_AVG_LEN: usize = 120;
+
+/// Minimum number of lines before line-oriented handling kicks in. Below this
+/// everything fits in the block budget anyway, so the distinction is moot.
+const LINE_ORIENTED_MIN_LINES: usize = 50;
+
 // ── Output types ──────────────────────────────────────────────────────────────
 
 /// A single semantic match.
@@ -173,6 +188,99 @@ fn evenly_sampled_indices(line_count: usize, window: usize, max_samples: usize) 
         i += step;
     }
     indices
+}
+
+/// Returns true when `content` looks like a list of self-contained records
+/// (a path list from `find`/`ls`, an ID list, a CSV-ish column) rather than
+/// prose or source code.
+///
+/// This matters because the block sampler assumes *content*: it spends
+/// `2 * CONTEXT_LINES + 1` lines of budget per candidate so the model can see
+/// what surrounds a hit. On a record list that context is meaningless — the
+/// neighbours of a path are unrelated paths — so four fifths of the budget is
+/// wasted and the block cap ends up deciding which records the model may
+/// consider at all. That would make it a relevance gate, which this file's
+/// contract forbids.
+///
+/// Deliberately conservative: it must not fire on real source or prose, where
+/// context genuinely carries meaning. Requires *all* of:
+/// - enough lines that the block budget would actually bind,
+/// - short lines on average (records, not sentences or statements),
+/// - no blank lines (paragraphs and code have them; generated lists do not),
+/// - no leading indentation (structure implies context matters).
+fn looks_line_oriented(content: &str) -> bool {
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.len() < LINE_ORIENTED_MIN_LINES {
+        return false;
+    }
+
+    let mut total_len = 0usize;
+    for l in &lines {
+        // A blank line separates paragraphs/blocks — a sign context matters.
+        if l.trim().is_empty() {
+            return false;
+        }
+        // Leading whitespace implies nesting/structure (code, YAML, prose).
+        if l.starts_with(' ') || l.starts_with('\t') {
+            return false;
+        }
+        total_len += l.chars().count();
+    }
+
+    total_len / lines.len() <= LINE_ORIENTED_MAX_AVG_LEN
+}
+
+/// Produce up to `budget` single-line candidates from line-oriented content.
+///
+/// Keyword hits come first (volume control, exactly as in the block path), then
+/// evenly-spaced lines fill any remaining budget so records with no literal
+/// keyword overlap still reach the model. Every candidate is one line with no
+/// context, which is what makes the far larger budget affordable.
+fn candidate_lines_for_file(
+    content: &str,
+    display_path: &str,
+    keywords: &[String],
+    budget: usize,
+) -> (Vec<CandidateBlock>, bool) {
+    if budget == 0 {
+        return (vec![], !content.is_empty());
+    }
+    let lines: Vec<&str> = content.lines().collect();
+    let n = lines.len();
+    if n == 0 {
+        return (vec![], false);
+    }
+
+    let mut indices: Vec<usize> = lines
+        .iter()
+        .enumerate()
+        .filter(|(_, l)| line_matches_keyword(l, keywords))
+        .map(|(i, _)| i)
+        .collect();
+
+    // Fill the rest of the budget with even coverage of the whole list, so a
+    // relevant record that shares no keyword with the query is still visible.
+    if indices.len() < budget {
+        let remaining = budget - indices.len();
+        indices.extend(evenly_sampled_indices(n, 1, remaining));
+    }
+
+    indices.sort_unstable();
+    indices.dedup();
+
+    let capped = indices.len() > budget || n > budget;
+    indices.truncate(budget);
+
+    let blocks = indices
+        .into_iter()
+        .map(|i| CandidateBlock {
+            file: display_path.to_string(),
+            start_line: (i + 1) as u64,
+            lines: vec![lines[i].to_string()],
+        })
+        .collect();
+
+    (blocks, capped)
 }
 
 /// Produce up to `budget` candidate blocks from one file's content.
@@ -367,8 +475,15 @@ fn read_file_limited(path: &Path, max_bytes: usize) -> Result<String, LxError> {
 // ── Shared block-building + completion ────────────────────────────────────────
 
 /// Build candidate blocks across all files, allocating each file a
-/// proportional share of `MAX_CANDIDATE_BLOCKS` (per-file fairness) so a
-/// single large file cannot starve every other file out of the budget.
+/// proportional share of the budget (per-file fairness) so a single large file
+/// cannot starve every other file out of the budget.
+///
+/// The budget depends on the input shape. Record lists (see
+/// [`looks_line_oriented`]) are sampled one line at a time against
+/// `MAX_CANDIDATE_LINES`; everything else keeps the context-block strategy and
+/// `MAX_CANDIDATE_BLOCKS`. The decision is per file, so a mixed set (a path list
+/// plus a source file) treats each appropriately. This is still volume control
+/// only — neither path decides relevance.
 fn build_blocks(
     file_content_pairs: &[(&str, &str)],
     keywords: &[String],
@@ -377,21 +492,35 @@ fn build_blocks(
     if n_files == 0 {
         return (vec![], false);
     }
-    let per_file_budget = (MAX_CANDIDATE_BLOCKS / n_files).max(1);
+    let per_file_blocks = (MAX_CANDIDATE_BLOCKS / n_files).max(1);
+    let per_file_lines = (MAX_CANDIDATE_LINES / n_files).max(1);
 
     let mut all_blocks = Vec::new();
     let mut any_capped = false;
+    let mut any_line_oriented = false;
     for (display, content) in file_content_pairs {
-        let (blocks, capped) =
-            candidate_blocks_for_file(content, display, keywords, per_file_budget);
+        let (blocks, capped) = if looks_line_oriented(content) {
+            any_line_oriented = true;
+            candidate_lines_for_file(content, display, keywords, per_file_lines)
+        } else {
+            candidate_blocks_for_file(content, display, keywords, per_file_blocks)
+        };
         any_capped |= capped;
         all_blocks.extend(blocks);
     }
 
-    // Cost guardrail: even with per-file fairness, clamp to the global cap.
-    if all_blocks.len() > MAX_CANDIDATE_BLOCKS {
+    // Cost guardrail: even with per-file fairness, clamp to the global cap. A
+    // line-oriented candidate is a single line, so it is bounded by the larger
+    // line cap; mixed inputs use the larger of the two, since the block path is
+    // already bounded by its own per-file share.
+    let global_cap = if any_line_oriented {
+        MAX_CANDIDATE_LINES
+    } else {
+        MAX_CANDIDATE_BLOCKS
+    };
+    if all_blocks.len() > global_cap {
         any_capped = true;
-        all_blocks.truncate(MAX_CANDIDATE_BLOCKS);
+        all_blocks.truncate(global_cap);
     }
 
     (all_blocks, any_capped)

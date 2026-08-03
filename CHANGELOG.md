@@ -8,6 +8,19 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Fixed
 
+- **`lxgrep` now searches an order of magnitude more records when the input is a
+  list.** Piping a path list (`find . | lxgrep "build related stuff"`) sampled the
+  input with the strategy meant for file content: every candidate carried two
+  lines of context either side, which on a list of self-contained records is
+  meaningless — the neighbours of a path are unrelated paths. Four fifths of the
+  budget went to that context, only ~40 records ever reached the model, and the
+  budget effectively decided which records were eligible at all. `lxgrep` now
+  detects line-oriented input (many short, unindented, blank-line-free lines) and
+  samples it one record at a time against a larger budget: ~390 records instead of
+  ~40 on the same input, with even coverage so relevant entries late in a long
+  list are reachable. Source code, logs and prose are unaffected — the heuristic
+  is deliberately conservative and keeps context blocks for anything structured.
+
 - **`lxgrep` now states plainly that capped results are incomplete.** When the
   input exceeded the search budget, the warning read "a sampled subset was
   analysed", which is easy to read as a performance note rather than a
@@ -15,6 +28,18 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
   warning now leads with "results are INCOMPLETE", says matching lines may be
   missing, and suggests narrowing the input. Behaviour is unchanged; only the
   wording is clearer.
+
+### Documentation
+
+- **Documented what the output-token caps are for.** `limits.max_output_tokens`
+  and the per-tool `max_tokens` budgets are for latency on local models, cost on
+  hosted ones, and pipe safety — *not* for task adherence: the cap truncates at
+  the sampler, the model never sees it, so a tight cap cannot make a model
+  terser or more schema-obedient (that comes from the prompt). Also records why
+  the cap is not split per provider, that a truncated reply is a correctness
+  event rather than a budget one, and that `lxconv` converts roughly 7–8 KB
+  before hitting the ceiling. New design-doc §7.3.2 plus expanded guidance in
+  `config.example.toml`. No behaviour change.
 
 ## [1.0.5] - 2026-08-01
 
