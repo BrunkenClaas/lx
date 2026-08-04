@@ -130,18 +130,31 @@ distinguishable from a real release. The ritual, in strict order:
    regenerate `Cargo.lock` (`cargo build`), move `CHANGELOG.md` `[Unreleased]` →
    `[X.Y.Z] - <date>`, and update the version refs in `README.md` and
    `scripts/install.{sh,ps1}`. Open a PR, let full CI pass, merge.
-2. Tag the **merged** commit and push — never before merge, so the release builds
-   from a CI-verified, plain-version commit:
+2. Get onto the merged commit, clean up, and tag it — never before merge, so the
+   release builds from a CI-verified, plain-version commit. Chain the steps so a
+   failure stops the run instead of letting the tag land on the wrong commit:
    ```sh
-   git tag suite-vX.Y.Z
-   git push origin suite-vX.Y.Z
+   git checkout main && git pull && \
+     git branch -d release/X.Y.Z && git fetch --prune && \
+     git tag suite-vX.Y.Z && git push origin suite-vX.Y.Z
    ```
    GitHub Actions (`release-coreutils.yml`) builds the entire workspace, assembles
    one ZIP per target, and creates a GitHub Release with all ZIPs and `.sha256`
    checksums.
-3. **Immediately after tagging**, on a separate PR, bump `main` to the next
-   `-dev` (e.g. `1.0.7-dev`). Don't skip this — it's what keeps `main` honestly
-   marked. `README.md`/install scripts stay at the just-released version.
+3. **Final step — the release isn't finished without it.** Bump `main` to the next
+   `-dev` (e.g. `1.0.7-dev`) and commit it **straight to `main`, no PR**:
+   ```sh
+   # bump all 79 Cargo.toml, then
+   cargo build                     # regenerate Cargo.lock
+   git commit -sam "chore: mark main as X.Y.Z-dev between releases"
+   git push
+   ```
+   This is the one carve-out from "code goes via PR". It must land immediately
+   after tagging, before any other commit reaches `main`, and it must be
+   version-only — the 79 `Cargo.toml` plus `Cargo.lock`, nothing else. Any other
+   edit in the commit voids the carve-out and it goes via PR. CI still runs on the
+   push, so mistakes are caught, just after the fact rather than before.
+   `README.md`/install scripts stay at the just-released version.
 
 `LX_SUITE_LABEL` (`YYYY-MM`, in `lx-core/src/version.rs`) marks the suite generation,
 not the release — bump it only on a minor/major, not on patches.

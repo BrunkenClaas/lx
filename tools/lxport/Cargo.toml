@@ -1,6 +1,6 @@
 [package]
 name = "lxport"
-version = "1.0.6"
+version = "1.0.7-dev"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Explain what service runs on a port and flag any risk"

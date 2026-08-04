@@ -565,11 +565,32 @@ automatically — every tool passes `env!("CARGO_PKG_VERSION")`; nothing is hard
    regenerate `Cargo.lock`, move CHANGELOG `[Unreleased]` → `[X.Y.Z] - <date>`,
    update the version refs in `README.md` and the install scripts. PR → full CI →
    merge.
-2. Tag the merged commit `suite-vX.Y.Z` (never before merge — the release must build
-   from a CI-verified, plain-version commit). This triggers `release-coreutils.yml`.
-3. **Immediately after tagging**, on a separate PR, bump `main` to the next
-   `X.Y.(Z+1)-dev` (or the next minor/major `-dev` if that's what's coming). This is
-   what keeps `main` honestly marked between releases — do not skip it.
+2. Check out `main` and pull **before** tagging, then tag the merge commit
+   `suite-vX.Y.Z` (never before merge — the release must build from a CI-verified,
+   plain-version commit). This triggers `release-coreutils.yml`. Delete the local
+   release branch and prune; GitHub deletes the remote branch itself. Chain these
+   steps with `&&` so a failed checkout cannot let the tag land on the wrong commit.
+3. **Bump `main` to the next `X.Y.(Z+1)-dev`** (or the next minor/major `-dev` if
+   that is what is coming) and commit it **directly to `main` — no PR**. The release
+   is not finished until this is done; it is what keeps `main` honestly marked
+   between releases.
+
+   This is the one carve-out from the branch-and-PR rule for code, and it is narrow
+   on purpose:
+
+   - It must land **immediately after tagging, before any other commit reaches
+     `main`.** The window in which `main` is tagged but still carries the plain
+     release version is the whole risk being managed — nothing else may enter it.
+   - It is a **version-only** change: the 79 `Cargo.toml` files and `Cargo.lock`,
+     nothing else. Any other edit in the same commit voids the carve-out and the
+     whole thing goes via PR.
+   - CI still runs, because the push to `main` triggers it. A mangled version string
+     or an inconsistent lockfile is still caught — after the fact rather than before,
+     which is the accepted trade for keeping the tagged-but-unmarked window as short
+     as possible.
+
+   `README.md` and the install scripts stay at the just-released version and are not
+   part of this commit.
 
 `README.md` and the install scripts always reference the **latest released** version,
 never `-dev` — they tell a user what to install.
@@ -1673,6 +1694,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-04 | Release ritual step 3 (the between-release `-dev` bump) changed from a separate PR to a direct commit on `main`, with the carve-out's conditions stated: immediately after tagging, version-only, CI still runs on the push. Step 2 now says to check out `main` and pull before tagging, and to chain the commands. §6.2 + CONTRIBUTING. | BrunkenClaas |
 | 2026-08-04 | Released 1.0.6 (all crates 1.0.6-dev→1.0.6; suite label stays `2026-07`). Bundled the `lxgrep` line-oriented sampling fix and the capped-results wording fix. | BrunkenClaas |
 | 2026-08-03 | Contributor-process cleanup: CONTRIBUTING now defers to the PR template instead of duplicating a drifted checklist and carries the "which document to update when" table; "record notable revisions" → *every* edit gets an Appendix A row; "Last reviewed" redefined as verified-against-code, not last-edited; §14.8 now says the `-p` commands are per-tool, not a PR checklist. | BrunkenClaas |
 | 2026-08-03 | New §7.5 "Input sampling — volume, never relevance": states the sampling contract that had regressed twice, requires sampling across the whole input, and requires the sampling unit to match the input shape (`lxgrep` line-oriented detection). | BrunkenClaas |
