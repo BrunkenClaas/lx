@@ -8,7 +8,7 @@
 #
 # Options (as environment variables):
 #   LX_INSTALL_DIR   install location (default: ~/.local/bin)
-#   LX_VERSION       version to install, e.g. 1.0.5 (default: latest release)
+#   LX_VERSION       version to install, e.g. 1.0.6 (default: latest release)
 #
 # POSIX sh — no bashisms. Works with dash, busybox ash (Raspberry Pi OS), etc.
 
