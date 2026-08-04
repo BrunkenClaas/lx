@@ -1673,6 +1673,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-04 | Released 1.0.6 (all crates 1.0.6-dev→1.0.6; suite label stays `2026-07`). Bundled the `lxgrep` line-oriented sampling fix and the capped-results wording fix. | BrunkenClaas |
 | 2026-08-03 | Contributor-process cleanup: CONTRIBUTING now defers to the PR template instead of duplicating a drifted checklist and carries the "which document to update when" table; "record notable revisions" → *every* edit gets an Appendix A row; "Last reviewed" redefined as verified-against-code, not last-edited; §14.8 now says the `-p` commands are per-tool, not a PR checklist. | BrunkenClaas |
 | 2026-08-03 | New §7.5 "Input sampling — volume, never relevance": states the sampling contract that had regressed twice, requires sampling across the whole input, and requires the sampling unit to match the input shape (`lxgrep` line-oriented detection). | BrunkenClaas |
 | 2026-08-03 | Documented what the output-token caps are for (§7.3.2): latency/cost/pipe-safety, explicitly *not* task adherence; truncation as a correctness event; the deliberate decision against per-provider cap defaults; `lxconv`'s ~7–8 KB practical conversion ceiling. | BrunkenClaas |

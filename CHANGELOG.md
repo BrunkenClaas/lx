@@ -6,6 +6,8 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-08-04
+
 ### Fixed
 
 - **`lxgrep` now searches an order of magnitude more records when the input is a
