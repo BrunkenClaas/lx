@@ -129,7 +129,9 @@ distinguishable from a real release. The ritual, in strict order:
 1. On a `release/X.Y.Z` branch: bump every crate `X.Y.Z-dev` → plain `X.Y.Z`,
    regenerate `Cargo.lock` (`cargo build`), move `CHANGELOG.md` `[Unreleased]` →
    `[X.Y.Z] - <date>`, and update the version refs in `README.md` and
-   `scripts/install.{sh,ps1}`. Open a PR, let full CI pass, merge.
+   `scripts/install.{sh,ps1}`. Open a PR, label it `no-release-note` (so the
+   next release's auto-generated notes don't list this version bump — see
+   `.github/release.yml`), let full CI pass, merge.
 2. Get onto the merged commit, clean up, and tag it — never before merge, so the
    release builds from a CI-verified, plain-version commit. Chain the steps so a
    failure stops the run instead of letting the tag land on the wrong commit:

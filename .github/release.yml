@@ -1,0 +1,21 @@
+# Filters GitHub's auto-generated "What's Changed" list on a Release.
+#
+# `release-coreutils.yml` sets `generate_release_notes: true`, which lists every
+# pull request merged since the previous tag. That includes the release PRs
+# themselves — a "chore(release): 1.0.6" entry is bookkeeping, and it shows up in
+# the notes for the NEXT release, where it is doubly confusing.
+#
+# CHANGELOG.md is the authoritative release history; this list is a secondary
+# convenience. So it is filtered rather than categorised: no `categories:` block,
+# which would be a second taxonomy to keep in sync with the changelog.
+#
+# Label a PR `no-release-note` to keep it out of the list. Apply it to release
+# PRs (`chore(release): X.Y.Z`) and to any other pure-bookkeeping change.
+#
+# Note: the between-release `-dev` version bump is a direct commit to main, not
+# a PR (see CONTRIBUTING "Full suite release" step 3), so it never appears here
+# and needs no label.
+changelog:
+  exclude:
+    labels:
+      - no-release-note

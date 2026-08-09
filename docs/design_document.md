@@ -590,8 +590,8 @@ automatically — every tool passes `env!("CARGO_PKG_VERSION")`; nothing is hard
 **Release ritual (strict order):**
 1. On a `release/X.Y.Z` branch, bump every crate from `X.Y.Z-dev` → plain `X.Y.Z`,
    regenerate `Cargo.lock`, move CHANGELOG `[Unreleased]` → `[X.Y.Z] - <date>`,
-   update the version refs in `README.md` and the install scripts. PR → full CI →
-   merge.
+   update the version refs in `README.md` and the install scripts. PR (labelled
+   `no-release-note`, see `.github/release.yml`) → full CI → merge.
 2. Check out `main` and pull **before** tagging, then tag the merge commit
    `suite-vX.Y.Z` (never before merge — the release must build from a CI-verified,
    plain-version commit). This triggers `release-coreutils.yml`. Delete the local
@@ -1805,6 +1805,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-09 | Added `.github/release.yml` so the auto-generated release notes exclude PRs labelled `no-release-note`; release ritual step 1 now says to apply that label to the release PR, which otherwise appears in the *next* release's notes. Deliberately filter-only (no `categories:`) — `CHANGELOG.md` stays the authoritative history. | BrunkenClaas |
 | 2026-08-09 | Released 1.1.0 (all crates 1.0.7-dev→1.1.0). **Suite label `2026-07`→`2026-08`** — the first bump since 1.0.0, triggered by the minor release rather than the calendar (§6.2 now states that distinction). | BrunkenClaas |
 | 2026-08-09 | Verification pass against the code ("Last reviewed" bumped): corrected the `run()` contract in §3.4 and §14, which still showed `Result<Output, LxError>` for all tools although 16 now return `(Output, Vec<String>)`; confirmed §4's `io` inventory, the §8.2 config table, the §9.2 tier examples, the 72-tools-plus-`lx` count, and every cited `lx_*::` symbol. Also brought 11 per-tool READMEs' JSON examples up to date with `input_truncated`, and `lxcsv`'s stale `used_rows` sample. | BrunkenClaas |
 | 2026-08-09 | `limits.max_input_bytes` default 512 KiB → 2 MiB (§8.2 table, `config.example.toml`, README). §7.5.1 now states the read-vs-send budget distinction explicitly, with the measurement showing a 54× larger input grows the prompt by 8%: the raise costs memory and scan time, not tokens. | BrunkenClaas |
