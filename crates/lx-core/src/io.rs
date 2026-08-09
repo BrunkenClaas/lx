@@ -31,6 +31,100 @@ pub fn truncate_at_char_boundary(s: &str, max_bytes: usize) -> &str {
     &s[..end]
 }
 
+/// Drop a trailing incomplete UTF-8 sequence from `buf`.
+///
+/// Only meaningful after a truncating read: cutting a byte stream at a fixed
+/// offset can split a multi-byte character, and `from_utf8_lossy` would turn
+/// that fragment into a replacement character the user never wrote. Callers
+/// must NOT use this on a complete read — there, invalid bytes are the user's
+/// real data and should stay marked as such.
+fn trim_incomplete_utf8_tail(buf: &[u8]) -> &[u8] {
+    let n = buf.len();
+    // A UTF-8 character is at most 4 bytes, so only the last 3 can be partial.
+    for back in 1..=3.min(n) {
+        let i = n - back;
+        let b = buf[i];
+        if b < 0x80 {
+            break; // ASCII byte: the tail is complete.
+        }
+        if b >= 0xC0 {
+            // Lead byte: keep it only if all its continuation bytes arrived.
+            let need = if b >= 0xF0 {
+                4
+            } else if b >= 0xE0 {
+                3
+            } else {
+                2
+            };
+            return if back < need { &buf[..i] } else { buf };
+        }
+        // Continuation byte (0x80..=0xBF): keep looking back for the lead.
+    }
+    buf
+}
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+
+/// Tool input plus whether the byte limit cut it short.
+///
+/// Returned by the `*_checked` readers. A tool whose result is a claim about
+/// the *whole* input — a summary, a count, a search — must thread `truncated`
+/// into its `Output` so `--json` reports it: a stderr warning is invisible to
+/// anything parsing stdout, which makes a partial answer look complete.
+///
+/// Tools that merely transform or generate (the intent string for `lxsh`, the
+/// bullet points for `lxdraft`) do not need this — the stderr warning is the
+/// right and sufficient treatment, and they use the plain readers.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Input {
+    /// The text that was read, already truncated to the limit if it was hit.
+    pub text: String,
+    /// True when the source held more bytes than the limit allowed.
+    pub truncated: bool,
+}
+
+impl Input {
+    /// Discard the flag and keep the text.
+    pub fn into_text(self) -> String {
+        self.text
+    }
+}
+
+impl std::ops::Deref for Input {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.text
+    }
+}
+
+/// Shared tail of every read: drop a split character, warn, and wrap.
+fn finish_read(buf: Vec<u8>, truncated: bool, max_bytes: usize, label: &str) -> Input {
+    // Only trim on a truncating read — on a complete read, malformed bytes are
+    // the user's real data and must stay visible as replacement characters.
+    let bytes = if truncated {
+        trim_incomplete_utf8_tail(&buf)
+    } else {
+        &buf[..]
+    };
+    if truncated {
+        // Report bytes below 1 KiB — integer division would otherwise render a
+        // small `--max-input-bytes` as a nonsensical "0 KiB".
+        let size = if max_bytes >= 1024 {
+            format!("{} KiB", max_bytes / 1024)
+        } else {
+            format!("{max_bytes} bytes")
+        };
+        crate::output::warn(&format!(
+            "{label} truncated at {size} — results may be incomplete; \
+             raise --max-input-bytes to see more"
+        ));
+    }
+    Input {
+        text: String::from_utf8_lossy(bytes).into_owned(),
+        truncated,
+    }
+}
+
 // ── Stdin reading ─────────────────────────────────────────────────────────────
 
 /// Read all of stdin up to `max_bytes`.
@@ -41,7 +135,14 @@ pub fn truncate_at_char_boundary(s: &str, max_bytes: usize) -> &str {
 ///   behaviour of jq, ripgrep, and every standard Unix filter.
 /// - On size overflow: truncates at `max_bytes`, emits a warning on stderr,
 ///   continues.
+///
+/// Use [`read_stdin_checked`] when the tool must report truncation in `--json`.
 pub fn read_stdin(max_bytes: usize) -> Result<String, LxError> {
+    read_stdin_checked(max_bytes).map(Input::into_text)
+}
+
+/// Like [`read_stdin`], but also reports whether the limit cut the input short.
+pub fn read_stdin_checked(max_bytes: usize) -> Result<Input, LxError> {
     if crate::platform::is_tty(crate::platform::Fd::Stdin) {
         return Err(LxError::BadUsage(
             "no input provided — pipe data into this tool or use --file".to_string(),
@@ -60,29 +161,31 @@ pub fn read_stdin(max_bytes: usize) -> Result<String, LxError> {
             Ok(0) => break,
             Ok(n) => {
                 let remaining = max_bytes.saturating_sub(total);
-                if n >= remaining {
+                if n > remaining {
                     buf.extend_from_slice(&chunk[..remaining]);
                     truncated = true;
                     break;
-                } else {
-                    buf.extend_from_slice(&chunk[..n]);
-                    total += n;
+                }
+                buf.extend_from_slice(&chunk[..n]);
+                total += n;
+                if total == max_bytes {
+                    // The budget is exactly full, which is not truncation on its
+                    // own — the input may be exactly `max_bytes` long. Probe one
+                    // byte to tell "exactly at the limit" from "longer".
+                    let mut probe = [0u8; 1];
+                    match handle.read(&mut probe) {
+                        Ok(0) => {}
+                        Ok(_) => truncated = true,
+                        Err(e) => return Err(LxError::BadUsage(format!("stdin read error: {e}"))),
+                    }
+                    break;
                 }
             }
             Err(e) => return Err(LxError::BadUsage(format!("stdin read error: {e}"))),
         }
     }
 
-    if truncated {
-        crate::output::warn(&format!("input truncated at {} KiB", max_bytes / 1024));
-    }
-
-    Ok(String::from_utf8_lossy(&buf).into_owned())
-}
-
-// Backward-compat alias kept for existing tool code.
-pub fn read_stdin_limited(max_bytes: usize) -> Result<String, LxError> {
-    read_stdin(max_bytes)
+    Ok(finish_read(buf, truncated, max_bytes, "input"))
 }
 
 // ── File reading ──────────────────────────────────────────────────────────────
@@ -92,11 +195,21 @@ pub fn read_stdin_limited(max_bytes: usize) -> Result<String, LxError> {
 /// If `allowed_root` is `Some(root)`, the resolved path must be inside `root`
 /// (fsbound principle). Symlinks that escape the root are rejected with
 /// `LxError::SecurityAbort`.
+/// Use [`read_file_checked`] when the tool must report truncation in `--json`.
 pub fn read_file(
     path: &Path,
     max_bytes: usize,
     allowed_root: Option<&Path>,
 ) -> Result<String, LxError> {
+    read_file_checked(path, max_bytes, allowed_root).map(Input::into_text)
+}
+
+/// Like [`read_file`], but also reports whether the limit cut the file short.
+pub fn read_file_checked(
+    path: &Path,
+    max_bytes: usize,
+    allowed_root: Option<&Path>,
+) -> Result<Input, LxError> {
     // Resolve the path to catch symlink escapes.
     let canonical = std::fs::canonicalize(path)
         .map_err(|e| LxError::BadUsage(format!("cannot resolve {}: {e}", path.display())))?;
@@ -117,12 +230,17 @@ pub fn read_file(
     read_file_raw(&canonical, max_bytes)
 }
 
-/// Backward-compat alias — no fsbound check.
+/// Read a file with no fsbound check.
 pub fn read_file_limited(path: &Path, max_bytes: usize) -> Result<String, LxError> {
     read_file(path, max_bytes, None)
 }
 
-fn read_file_raw(path: &Path, max_bytes: usize) -> Result<String, LxError> {
+/// Like [`read_file_limited`], but also reports truncation.
+pub fn read_file_limited_checked(path: &Path, max_bytes: usize) -> Result<Input, LxError> {
+    read_file_checked(path, max_bytes, None)
+}
+
+fn read_file_raw(path: &Path, max_bytes: usize) -> Result<Input, LxError> {
     use std::io::BufReader;
 
     let file = std::fs::File::open(path)
@@ -138,24 +256,30 @@ fn read_file_raw(path: &Path, max_bytes: usize) -> Result<String, LxError> {
             Ok(0) => break,
             Ok(n) => {
                 let remaining = max_bytes.saturating_sub(total);
-                if n >= remaining {
+                if n > remaining {
                     buf.extend_from_slice(&chunk[..remaining]);
                     truncated = true;
                     break;
-                } else {
-                    buf.extend_from_slice(&chunk[..n]);
-                    total += n;
+                }
+                buf.extend_from_slice(&chunk[..n]);
+                total += n;
+                if total == max_bytes {
+                    // Budget exactly full — probe one byte to distinguish a file
+                    // that is exactly `max_bytes` long from one that is longer.
+                    let mut probe = [0u8; 1];
+                    match reader.read(&mut probe) {
+                        Ok(0) => {}
+                        Ok(_) => truncated = true,
+                        Err(e) => return Err(LxError::BadUsage(format!("read error: {e}"))),
+                    }
+                    break;
                 }
             }
             Err(e) => return Err(LxError::BadUsage(format!("read error: {e}"))),
         }
     }
 
-    if truncated {
-        crate::output::warn(&format!("file truncated at {} KiB", max_bytes / 1024));
-    }
-
-    Ok(String::from_utf8_lossy(&buf).into_owned())
+    Ok(finish_read(buf, truncated, max_bytes, "file"))
 }
 
 // ── Atomic file write ─────────────────────────────────────────────────────────
@@ -246,11 +370,22 @@ impl Drop for TempFile {
 /// 1. `--file <path>` if given — reads and returns the file contents
 /// 2. stdin if not a TTY (piped)
 /// 3. Error with a helpful hint if stdin is a TTY and no `--file` was given
+///
+/// Use [`resolve_input_checked`] when the tool must report truncation in
+/// `--json` — see [`Input`] for which tools that is.
 pub fn resolve_input(file: Option<&std::path::Path>, max_bytes: usize) -> Result<String, LxError> {
+    resolve_input_checked(file, max_bytes).map(Input::into_text)
+}
+
+/// Like [`resolve_input`], but also reports whether the limit cut the input short.
+pub fn resolve_input_checked(
+    file: Option<&std::path::Path>,
+    max_bytes: usize,
+) -> Result<Input, LxError> {
     if let Some(path) = file {
-        return read_file(path, max_bytes, None);
+        return read_file_checked(path, max_bytes, None);
     }
-    read_stdin(max_bytes)
+    read_stdin_checked(max_bytes)
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -286,6 +421,79 @@ mod tests {
             assert!(s.starts_with(t), "result must be a prefix of the input");
             assert!(t.len() <= n, "result must not exceed the requested cap");
         }
+    }
+
+    // ── trim_incomplete_utf8_tail ──
+
+    #[test]
+    fn trim_incomplete_utf8_tail_drops_a_split_character() {
+        // 'ä' is two bytes; cut after its lead byte leaves a dangling fragment.
+        assert_eq!(trim_incomplete_utf8_tail(&[b'a', 0xC3]), b"a");
+        // A complete 'ä' survives untouched.
+        assert_eq!(
+            trim_incomplete_utf8_tail(&[b'a', 0xC3, 0xA4]),
+            &[b'a', 0xC3, 0xA4]
+        );
+        // A four-byte emoji missing its final continuation byte.
+        assert_eq!(trim_incomplete_utf8_tail(&[0xF0, 0x9F, 0xA6]), &[] as &[u8]);
+        // ASCII and empty input are never touched.
+        assert_eq!(trim_incomplete_utf8_tail(b"hello"), b"hello");
+        assert_eq!(trim_incomplete_utf8_tail(&[]), &[] as &[u8]);
+    }
+
+    #[test]
+    fn truncated_read_does_not_end_in_a_replacement_character() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("lx_core_io_split_char.txt");
+        // The "x" prefix puts every 'ä' on an odd byte offset, so an even cap
+        // is guaranteed to land inside one.
+        std::fs::write(&path, format!("x{}", "ä".repeat(100)).as_bytes()).unwrap();
+        let input = read_file_checked(&path, 10, None).unwrap();
+        assert!(input.truncated);
+        assert!(
+            !input.text.ends_with('\u{FFFD}'),
+            "a split character must be dropped, not become U+FFFD: {:?}",
+            input.text
+        );
+        std::fs::remove_file(&path).ok();
+    }
+
+    // ── truncation flag ──
+
+    #[test]
+    fn input_exactly_at_the_limit_is_not_truncated() {
+        // The old `n >= remaining` test reported truncation here even though
+        // nothing was dropped — and lxjson's byte-length heuristic rejected it.
+        let dir = std::env::temp_dir();
+        let path = dir.join("lx_core_io_exact.txt");
+        std::fs::write(&path, b"hello world").unwrap();
+        let input = read_file_checked(&path, 11, None).unwrap();
+        assert_eq!(&*input, "hello world");
+        assert!(!input.truncated, "input of exactly max_bytes is complete");
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn input_one_byte_over_the_limit_is_truncated() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("lx_core_io_over.txt");
+        std::fs::write(&path, b"hello world").unwrap();
+        let input = read_file_checked(&path, 10, None).unwrap();
+        assert_eq!(&*input, "hello worl");
+        assert!(input.truncated);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn plain_and_checked_readers_return_the_same_text() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("lx_core_io_parity.txt");
+        std::fs::write(&path, b"hello world").unwrap();
+        let plain = read_file(&path, 6, None).unwrap();
+        let checked = read_file_checked(&path, 6, None).unwrap();
+        assert_eq!(plain, checked.text);
+        assert!(checked.truncated);
+        std::fs::remove_file(&path).ok();
     }
 
     // ── read_file ──

@@ -10,5 +10,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
     "Staging health check was slow but recovered",
     "Smoke tests passed (12/12)",
     "Production deployment complete"
-  ]
+  ],
+  "input_truncated": false
 }
