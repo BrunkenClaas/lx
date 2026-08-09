@@ -273,13 +273,28 @@ The platform-neutral foundation. Modules:
 - **`error`** — `print_error(&LxError, json: bool)` writes the canonical error format
   to **stderr** (never stdout). Plain: `error[E<n>]: <message>` plus an optional
   `  hint: <how to fix>`. JSON: `{"error":{"code":<n>,"message":"…","hint":"…"}}`.
-- **`io`** — uniform input handling: `resolve_input(file, max_bytes, timeout_ms)`
+- **`io`** — uniform input handling: `resolve_input(file, max_bytes)`
   (priority: `--file` → stdin), `read_stdin` / `read_file` (chunked, size-limited,
   truncate-with-warning), `write_atomic` (temp-file + rename), and the fsbound
   `read_file(path, max, allowed_root)` which rejects symlink escapes with
   `SecurityAbort`. `read_stdin` errors immediately if stdin is a TTY; for piped
   stdin it blocks until EOF with no timeout (slow pipes and SSH commands work).
   Default: `DEFAULT_MAX_INPUT_BYTES = 512 KiB`.
+  `truncate_at_char_boundary(s, max)` is the only correct way to apply a byte
+  cap to a `&str` — a raw `&s[..max]` panics when the offset falls inside a
+  multi-byte character.
+
+  Each reader has a `_checked` twin (`resolve_input_checked`,
+  `read_stdin_checked`, `read_file_checked`, `read_file_limited_checked`)
+  returning `Input { text, truncated }` instead of a bare `String`. **A tool
+  whose result is a claim about the whole input — a summary, a count, a search,
+  an aggregate — must use the checked reader and surface `truncated` in its
+  `Output`**, because the stderr warning is invisible to anything parsing
+  stdout: a partial answer would otherwise look complete to a `--json`
+  consumer. Tools that transform or generate from an intent string keep the
+  plain readers, where the warning is the right and sufficient treatment.
+  The plain readers delegate to the checked ones, so there is a single
+  implementation and the two cannot drift.
 - **`version`** — `LX_SUITE_LABEL` (currently `"2026-07"`) and
   `build_version_string(binary, version)` producing
   `lxexplain 1.0.0 (lx-coreutils 2026-07, <target-triple>)`.
@@ -1694,6 +1709,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-09 | Input readers gained `_checked` twins returning `Input { text, truncated }`, so a tool whose result is a claim about the whole input can report truncation in `--json` (§4 `io`); documented `truncate_at_char_boundary` as the only correct way to apply a byte cap to a `&str`; corrected the stale `resolve_input(file, max_bytes, timeout_ms)` signature (no `timeout_ms` exists). | BrunkenClaas |
 | 2026-08-04 | Release ritual step 3 (the between-release `-dev` bump) changed from a separate PR to a direct commit on `main`, with the carve-out's conditions stated: immediately after tagging, version-only, CI still runs on the push. Step 2 now says to check out `main` and pull before tagging, and to chain the commands. §6.2 + CONTRIBUTING. | BrunkenClaas |
 | 2026-08-04 | Released 1.0.6 (all crates 1.0.6-dev→1.0.6; suite label stays `2026-07`). Bundled the `lxgrep` line-oriented sampling fix and the capped-results wording fix. | BrunkenClaas |
 | 2026-08-03 | Contributor-process cleanup: CONTRIBUTING now defers to the PR template instead of duplicating a drifted checklist and carries the "which document to update when" table; "record notable revisions" → *every* edit gets an Appendix A row; "Last reviewed" redefined as verified-against-code, not last-edited; §14.8 now says the `-p` commands are per-tool, not a PR checklist. | BrunkenClaas |

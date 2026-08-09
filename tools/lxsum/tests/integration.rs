@@ -82,6 +82,7 @@ fn to_plain_contains_tldr_and_bullets() {
         tldr: "Short summary of things".to_string(),
         bullets: vec!["Point one".to_string(), "Point two".to_string()],
         body: None,
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("Short summary of things"));
@@ -96,6 +97,7 @@ fn to_plain_no_bullets_when_empty() {
         tldr: "A summary".to_string(),
         bullets: vec![],
         body: None,
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("A summary"));

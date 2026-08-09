@@ -65,6 +65,11 @@ pub struct Output {
     /// Prose body (used when format=prose or format=outline with nested items).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
+    /// True when the input was cut short by the byte limit, so this summary
+    /// describes only part of the document. Set locally from the reader —
+    /// never delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {

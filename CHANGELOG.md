@@ -6,8 +6,31 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Added
+
+- **Truncated input is now visible in `--json`.** When input exceeded
+  `--max-input-bytes` the tool warned on stderr and carried on — invisible to
+  anything parsing stdout, so a script consuming `--json` could not tell a
+  summary of a whole document from a summary of its first 512 KiB. The readers
+  now return that fact alongside the text (`resolve_input_checked` and friends
+  in `lx-core`), and `lxsum` reports it as `"input_truncated": true`. Tools
+  whose result is a claim about the *whole* input adopt this; generators, where
+  the stderr warning is the right treatment, keep the existing readers.
+
 ### Fixed
 
+- **Input of exactly `--max-input-bytes` is no longer reported as truncated.**
+  The read loop treated "the buffer is exactly full" as overflow, so an input
+  landing precisely on the limit produced a spurious truncation warning even
+  though nothing had been dropped. It now distinguishes the two cases.
+- **A truncated read no longer ends in a stray replacement character.** Cutting
+  the byte stream at the limit can split a multi-byte character, and the lossy
+  UTF-8 conversion turned that fragment into a `U+FFFD` the user never wrote —
+  which was then sent to the model. The incomplete trailing sequence is now
+  dropped instead.
+- **The truncation warning no longer reads "0 KiB"** when `--max-input-bytes`
+  is set below 1024; it reports bytes at that scale. The warning now also names
+  the remedy (`raise --max-input-bytes to see more`).
 - **Tools no longer crash on oversized non-ASCII input.** Eight tools cap their
   input before the LLM call (`lxclog`, `lxcommit`, `lxconf`, `lxdebug`,
   `lxdiff`, `lxdigest`, `lxpr`, `lxsum`), and each cut the text at a raw byte
