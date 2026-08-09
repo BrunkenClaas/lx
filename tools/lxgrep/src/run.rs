@@ -128,9 +128,26 @@ fn extract_keywords(query: &str) -> Vec<String> {
 }
 
 /// Returns true if `line` contains at least one keyword (case-insensitive).
+///
+/// Keywords are already lower-cased by [`extract_keywords`]. For ASCII keywords
+/// the comparison folds case in place; allocating a lower-cased copy of every
+/// line costs one allocation per line per file, which on a large input is the
+/// single hottest cost in the sampler. Non-ASCII keywords fall back to the
+/// allocating path so Unicode case folding keeps its exact semantics.
 fn line_matches_keyword(line: &str, keywords: &[String]) -> bool {
     if keywords.is_empty() {
         return false;
+    }
+    if keywords.iter().all(|kw| kw.is_ascii()) && line.is_ascii() {
+        let hay = line.as_bytes();
+        return keywords.iter().any(|kw| {
+            let needle = kw.as_bytes();
+            !needle.is_empty()
+                && hay.len() >= needle.len()
+                && hay
+                    .windows(needle.len())
+                    .any(|w| w.eq_ignore_ascii_case(needle))
+        });
     }
     let lower = line.to_lowercase();
     keywords.iter().any(|kw| lower.contains(kw.as_str()))
@@ -177,6 +194,46 @@ fn blocks_from_hit_indices(
         })
         .collect()
 }
+
+/// Reduce `items` to at most `k` entries spread evenly across the WHOLE slice.
+///
+/// Unlike `truncate(k)`, this keeps the first and last entries and equalises the
+/// gaps between the rest. That difference is what makes hit-downsampling a
+/// *volume* decision rather than a positional one: truncating a sorted hit list
+/// keeps only the lowest line numbers, so the model never sees past the head of
+/// a large file — a relevance gate by another name (design_document.md §7.5).
+///
+/// Input order is preserved, so an ascending index list stays ascending.
+fn downsample_evenly<T>(items: Vec<T>, k: usize) -> Vec<T> {
+    let len = items.len();
+    if k == 0 {
+        return vec![];
+    }
+    if len <= k {
+        return items;
+    }
+    // Positions i*(len-1)/(k-1) for i in 0..k: hits both ends, equal spacing.
+    let keep: std::collections::BTreeSet<usize> = if k == 1 {
+        std::iter::once(0).collect()
+    } else {
+        (0..k).map(|i| i * (len - 1) / (k - 1)).collect()
+    };
+    items
+        .into_iter()
+        .enumerate()
+        .filter_map(|(i, v)| keep.contains(&i).then_some(v))
+        .collect()
+}
+
+/// Share of a sampling budget reserved for even coverage of the whole input,
+/// even when keyword hits alone could fill it.
+///
+/// Without this reserve, a query whose keywords match a large fraction of the
+/// input lets the hit set decide what the model is allowed to consider at all —
+/// which is a relevance decision made by local code, forbidden by §7.5. One
+/// quarter keeps three quarters of the budget for prioritised hits while
+/// guaranteeing the tail stays reachable.
+const COVERAGE_SHARE_DENOM: usize = 4;
 
 /// Split `content` into non-overlapping windows of `window` lines each,
 /// covering the whole file. Used to sample context evenly when there aren't
@@ -257,25 +314,40 @@ fn candidate_lines_for_file(
         return (vec![], false);
     }
 
-    let mut indices: Vec<usize> = lines
+    let hits: Vec<usize> = lines
         .iter()
         .enumerate()
         .filter(|(_, l)| line_matches_keyword(l, keywords))
         .map(|(i, _)| i)
         .collect();
 
-    // Fill the rest of the budget with even coverage of the whole list, so a
-    // relevant record that shares no keyword with the query is still visible.
-    if indices.len() < budget {
-        let remaining = budget - indices.len();
-        indices.extend(evenly_sampled_indices(n, 1, remaining));
-    }
+    // Reserve part of the budget for even coverage of the whole list, so a
+    // relevant record that shares no keyword with the query is still visible
+    // even when hits alone would fill the budget (§7.5).
+    let coverage_budget = (budget / COVERAGE_SHARE_DENOM).max(1).min(budget);
+    let hit_budget = budget - coverage_budget;
 
+    // Hits are prioritised, but when there are more of them than their share
+    // allows they are thinned ACROSS THE WHOLE FILE — never cut to a prefix.
+    let mut indices = downsample_evenly(hits, hit_budget);
+    indices.extend(evenly_sampled_indices(n, 1, budget - indices.len()));
     indices.sort_unstable();
     indices.dedup();
 
-    let capped = indices.len() > budget || n > budget;
-    indices.truncate(budget);
+    // Deduplication can free slots when a sampled index coincided with a hit.
+    // Reclaim them with a denser pass, but thin the result back down *evenly*:
+    // a denser sample is front-loaded relative to the budget, so sorting and
+    // truncating it would pull every candidate towards the head — the exact
+    // bias this function exists to avoid.
+    if indices.len() < budget && indices.len() < n {
+        indices.extend(evenly_sampled_indices(n, 1, (budget - indices.len()) * 2));
+        indices.sort_unstable();
+        indices.dedup();
+    }
+
+    indices = downsample_evenly(indices, budget);
+    // Honest meaning: some line of the input never reached the model.
+    let capped = n > indices.len();
 
     let blocks = indices
         .into_iter()
@@ -325,24 +397,36 @@ fn candidate_blocks_for_file(
         .map(|(i, _)| i)
         .collect();
 
-    let mut all_indices = hit_indices.clone();
+    // Reserve part of the budget for coverage of the whole file, so relevant
+    // lines with no literal keyword overlap stay reachable even when hits alone
+    // would fill it (§7.5).
+    let coverage_blocks = (budget / COVERAGE_SHARE_DENOM).max(1).min(budget);
+    let hit_blocks = budget - coverage_blocks;
 
-    // Fill remaining budget with evenly-sampled coverage of the whole file so
-    // semantically relevant lines with no literal keyword overlap are still
-    // visible to the model. Window size matches the context radius so sampled
-    // windows don't degenerate into single lines.
-    let approx_blocks_per_index = (2 * CONTEXT_LINES + 1).max(1);
-    let target_indices = budget.saturating_mul(approx_blocks_per_index);
-    if all_indices.len() < target_indices {
-        let remaining = target_indices - all_indices.len();
-        let sampled = evenly_sampled_indices(n, CONTEXT_LINES * 2 + 1, remaining.max(1));
-        all_indices.extend(sampled);
-    }
+    // Build the hit blocks first, then thin them ACROSS THE WHOLE FILE rather
+    // than truncating to a prefix. Downsampling happens in *block* units, not
+    // hit-index units, because context merging means k hits rarely yield k
+    // blocks — thinning the indices would not bound the block count.
+    let hit_only = blocks_from_hit_indices(&lines, display_path, hit_indices);
+    let mut blocks = downsample_evenly(hit_only, hit_blocks);
 
-    let blocks = blocks_from_hit_indices(&lines, display_path, all_indices);
-    let capped = blocks.len() > budget;
-    let mut blocks = blocks;
+    // Fill the rest with evenly-sampled coverage of the whole file. Window size
+    // matches the context radius so sampled windows don't degenerate into
+    // single lines.
+    let target_indices = budget.saturating_mul((2 * CONTEXT_LINES + 1).max(1));
+    let sampled = evenly_sampled_indices(n, CONTEXT_LINES * 2 + 1, target_indices.max(1));
+    let coverage = blocks_from_hit_indices(&lines, display_path, sampled);
+    let room = budget.saturating_sub(blocks.len());
+    blocks.extend(downsample_evenly(coverage, room));
+
+    blocks.sort_by_key(|b| b.start_line);
+    blocks.dedup_by_key(|b| b.start_line);
     blocks.truncate(budget);
+
+    // Honest meaning: some line of the file never reached the model. A block
+    // covers 2*CONTEXT_LINES+1 lines, so compare against the lines covered.
+    let covered: usize = blocks.iter().map(|b| b.lines.len()).sum();
+    let capped = n > covered;
     (blocks, capped)
 }
 
@@ -405,8 +489,11 @@ pub fn collect_file_contents(
     max_bytes: usize,
 ) -> Result<Vec<(String, String)>, LxError> {
     let mut files = Vec::new();
+    // `max_bytes` is per file; a directory walk multiplies it by the file count,
+    // so a second, aggregate ceiling is what actually bounds memory here.
+    let mut remaining_total = lx_core::io::DEFAULT_MAX_TOTAL_INPUT_BYTES;
     for p in paths {
-        collect_paths_from(p, root, max_bytes, &mut files)?;
+        collect_paths_from(p, root, max_bytes, &mut remaining_total, &mut files)?;
     }
     Ok(files)
 }
@@ -415,6 +502,7 @@ fn collect_paths_from(
     p: &Path,
     root: &Path,
     max_bytes: usize,
+    remaining_total: &mut usize,
     files: &mut Vec<(String, String)>,
 ) -> Result<(), LxError> {
     let meta = std::fs::metadata(p)
@@ -435,47 +523,26 @@ fn collect_paths_from(
             .collect();
         children.sort();
         for child in children {
-            collect_paths_from(&child, root, max_bytes, files)?;
+            collect_paths_from(&child, root, max_bytes, remaining_total, files)?;
         }
     } else if meta.is_file() {
+        // Refuse rather than silently stopping: the walk is in sorted order, so
+        // quietly running out of budget would search the alphabetically-first
+        // files and skip the rest — a positional relevance gate (§7.5). An
+        // explicit error tells the user to narrow the path instead.
+        if *remaining_total == 0 {
+            return Err(LxError::BadUsage(format!(
+                "input too large: this directory exceeds the {} MiB aggregate                  input ceiling; narrow the path or exclude build/vendor directories",
+                lx_core::io::DEFAULT_MAX_TOTAL_INPUT_BYTES / (1024 * 1024)
+            )));
+        }
         let (display, _) = resolve_and_check_fsbound(p, root)?;
-        let content = read_file_limited(p, max_bytes)?;
+        let content = lx_core::io::read_file_limited(p, max_bytes.min(*remaining_total))?;
+        *remaining_total = remaining_total.saturating_sub(content.len());
         files.push((display, content));
     }
     // Symlinks to non-file/non-dir: skip silently.
     Ok(())
-}
-
-/// Read a file up to `max_bytes`, returning lossy UTF-8.
-fn read_file_limited(path: &Path, max_bytes: usize) -> Result<String, LxError> {
-    use std::io::Read;
-    let mut f = std::fs::File::open(path)
-        .map_err(|e| LxError::BadUsage(format!("cannot open {}: {e}", path.display())))?;
-    let mut buf = Vec::with_capacity(max_bytes.min(65_536));
-    let mut chunk = [0u8; 8_192];
-    let mut total = 0usize;
-    loop {
-        match f.read(&mut chunk) {
-            Ok(0) => break,
-            Ok(n) => {
-                let remaining = max_bytes.saturating_sub(total);
-                if n >= remaining {
-                    buf.extend_from_slice(&chunk[..remaining]);
-                    break;
-                } else {
-                    buf.extend_from_slice(&chunk[..n]);
-                    total += n;
-                }
-            }
-            Err(e) => {
-                return Err(LxError::BadUsage(format!(
-                    "read error on {}: {e}",
-                    path.display()
-                )))
-            }
-        }
-    }
-    Ok(String::from_utf8_lossy(&buf).into_owned())
 }
 
 // ── Shared block-building + completion ────────────────────────────────────────
@@ -526,7 +593,11 @@ fn build_blocks(
     };
     if all_blocks.len() > global_cap {
         any_capped = true;
-        all_blocks.truncate(global_cap);
+        // Thin evenly, never truncate: blocks arrive in file order and within a
+        // file in line order, so cutting to a prefix would drop the tail of the
+        // last file *and* whole files at the end of the list — the same
+        // positional gate the per-file samplers avoid (§7.5).
+        all_blocks = downsample_evenly(all_blocks, global_cap);
     }
 
     (all_blocks, any_capped)
@@ -788,5 +859,119 @@ mod tests {
         let (blocks, _capped) = build_blocks(&pairs, &kw);
         assert!(blocks.iter().any(|b| b.file == "a.log"));
         assert!(blocks.iter().any(|b| b.file == "b.log"));
+    }
+
+    // ── §7.5: sampling must span the WHOLE input, never just its head ────────
+
+    /// Builds a record list of `n` lines where every `hit_every`-th line
+    /// contains the keyword. Returns the content.
+    fn record_list(n: usize, hit_every: usize) -> String {
+        let mut s = String::new();
+        for i in 0..n {
+            if i % hit_every == 0 {
+                s.push_str(&format!(
+                    "error at record {i}
+"
+                ));
+            } else {
+                s.push_str(&format!(
+                    "record {i}
+"
+                ));
+            }
+        }
+        s
+    }
+
+    #[test]
+    fn line_sampler_reaches_the_tail_when_hits_exceed_the_budget() {
+        // 20k hits against a 400 budget. Sorting the hits and truncating keeps
+        // only the lowest line numbers, so the model would see the first ~2% of
+        // the file and nothing after it — a positional relevance gate, which
+        // §7.5 forbids.
+        let content = record_list(200_000, 10);
+        let kw = extract_keywords("error");
+        let (blocks, capped) = candidate_lines_for_file(&content, "big.txt", &kw, 400);
+        assert!(capped, "a 200k-line file against a 400 budget is capped");
+        let max_line = blocks.iter().map(|b| b.start_line).max().unwrap();
+        let min_line = blocks.iter().map(|b| b.start_line).min().unwrap();
+        assert!(
+            max_line > 190_000,
+            "sampler must reach the tail; deepest line was {max_line}"
+        );
+        assert!(
+            min_line < 1_000,
+            "sampler must also cover the head; shallowest line was {min_line}"
+        );
+    }
+
+    #[test]
+    fn line_sampler_keeps_coverage_when_every_line_is_a_hit() {
+        // Every line matches, so hits alone could fill the budget from the head.
+        // The reserved coverage share must still spread candidates to the end.
+        let content = record_list(50_000, 1);
+        let kw = extract_keywords("error");
+        let (blocks, _capped) = candidate_lines_for_file(&content, "big.txt", &kw, 400);
+        let max_line = blocks.iter().map(|b| b.start_line).max().unwrap();
+        assert!(
+            max_line > 45_000,
+            "even a 100% hit rate must not collapse to the head; deepest was {max_line}"
+        );
+    }
+
+    #[test]
+    fn block_sampler_reaches_the_tail_when_hits_exceed_the_budget() {
+        // Same defect in the block path: blocks come back in ascending order and
+        // `truncate(budget)` keeps the first ones.
+        let mut content = String::new();
+        for i in 0..20_000 {
+            if i % 10 == 0 {
+                content.push_str(&format!(
+                    "    let x = error_handler({i});
+"
+                ));
+            } else {
+                content.push_str(&format!(
+                    "    let y = compute({i});
+"
+                ));
+            }
+        }
+        let kw = extract_keywords("error_handler");
+        let (blocks, _capped) = candidate_blocks_for_file(&content, "big.rs", &kw, 40);
+        let max_line = blocks.iter().map(|b| b.start_line).max().unwrap();
+        assert!(
+            max_line > 15_000,
+            "block sampler must reach the tail; deepest was {max_line}"
+        );
+    }
+
+    #[test]
+    fn line_sampler_reaches_the_tail_when_hits_are_sparse() {
+        // The real-world shape that a 10%-hit-rate test does not cover: a very
+        // large list with only a handful of hits, so almost the whole budget is
+        // filled by the coverage sampler. A denser top-up pass followed by a
+        // plain truncate would pull every candidate back towards the head.
+        let mut content = String::new();
+        for i in 0..20_000 {
+            if i % 1_500 == 0 {
+                content.push_str(&format!(
+                    "./src/build_{i}.rs
+"
+                ));
+            } else {
+                content.push_str(&format!(
+                    "./src/module_{i}.rs
+"
+                ));
+            }
+        }
+        let kw = extract_keywords("build related stuff");
+        let (blocks, _) = candidate_lines_for_file(&content, "paths.txt", &kw, 400);
+        let max_line = blocks.iter().map(|b| b.start_line).max().unwrap();
+        assert!(
+            max_line > 19_000,
+            "sparse hits must still reach the tail; deepest was {max_line}"
+        );
     }
 }
