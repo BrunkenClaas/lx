@@ -40,7 +40,8 @@ Summary: <one-sentence tldr>
 ```json
 {
   "tldr": "one-sentence summary ≤120 chars",
-  "bullets": ["key point 1", "key point 2"]
+  "bullets": ["key point 1", "key point 2"],
+  "input_truncated": false
 }
 ```
 

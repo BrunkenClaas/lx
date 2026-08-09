@@ -55,7 +55,8 @@ src/db.rs:7:    fn connect(host: &str, port: u16) -> Result<Conn, Error> {
   "matches": [
     { "file": "src/main.rs", "line": 14, "snippet": "    Err(e) => eprintln!(\"error: {e}\")," }
   ],
-  "capped": false
+  "capped": false,
+  "input_truncated": false
 }
 ```
 

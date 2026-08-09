@@ -60,7 +60,8 @@ $ lxnotes --file kickoff.txt --json
         "Budget confirmation still pending from finance"
       ]
     }
-  ]
+  ],
+  "input_truncated": false
 }
 ```
 
