@@ -17,5 +17,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
       "hint": "Remove the duplicate key"
     }
   ],
-  "content": ""
+  "content": "",
+  "input_truncated": false
 }

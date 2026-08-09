@@ -31,6 +31,12 @@ pub struct Output {
     /// True when the log exceeded MAX_SAMPLE_LINES and some lines were not sent to the LLM.
     #[serde(default)]
     pub capped: bool,
+    /// True when the byte limit cut the input short *before* sampling — a
+    /// different failure from the sampling flag above, and a different remedy
+    /// (raise `--max-input-bytes` rather than narrow the query). Set locally
+    /// from the reader, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {

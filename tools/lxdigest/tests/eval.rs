@@ -14,7 +14,7 @@ fn eval_output_structure() {
     let client = client_from_config(&config, false).unwrap();
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
 
-    let out = run(manifest_dir, false, &config, client.as_ref()).unwrap();
+    let (out, _warnings) = run(manifest_dir, false, &config, client.as_ref()).unwrap();
 
     // Check structure, not exact text.
     assert!(!out.summary.is_empty(), "summary must not be empty");
@@ -38,7 +38,7 @@ fn eval_json_round_trips() {
     let client = client_from_config(&config, false).unwrap();
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
 
-    let out = run(manifest_dir, false, &config, client.as_ref()).unwrap();
+    let (out, _warnings) = run(manifest_dir, false, &config, client.as_ref()).unwrap();
 
     let json = serde_json::to_string(&out).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();

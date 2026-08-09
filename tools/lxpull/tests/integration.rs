@@ -94,6 +94,7 @@ fn to_plain_empty_records() {
     let out = Output {
         records: vec![],
         truncated: false,
+        input_truncated: false,
     };
     assert_eq!(out.to_plain(&["name".to_string(), "email".to_string()]), "");
 }
@@ -110,6 +111,7 @@ fn to_plain_aligns_columns() {
     let out = Output {
         records: vec![r1, r2],
         truncated: false,
+        input_truncated: false,
     };
     let fields = vec!["name".to_string(), "email".to_string()];
     let plain = out.to_plain(&fields);

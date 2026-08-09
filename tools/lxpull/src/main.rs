@@ -135,7 +135,9 @@ fn main() {
     }
 
     let max = cli.max_input_bytes.unwrap_or(config.limits.max_input_bytes);
-    let input = lx_core::io::resolve_input(cli.file.as_deref(), max).unwrap_or_else(|e| {
+    // Checked reader: this result is a claim about the whole input, so a
+    // `--json` consumer must be able to see that it was cut short.
+    let input = lx_core::io::resolve_input_checked(cli.file.as_deref(), max).unwrap_or_else(|e| {
         print_error(&e, cli.json);
         process::exit(e.exit_code());
     });
@@ -152,7 +154,8 @@ fn main() {
     if cli.dry_run {
         let level = lx_redact::RedactLevel::parse(&config.redact.level);
         let redacted = if cli.no_redact {
-            input.clone()
+            // `.text.clone()`: `input.clone()` would clone the `Input` struct.
+            input.text.clone()
         } else {
             match lx_redact::redact(&input, level) {
                 Ok(r) => r,
@@ -194,16 +197,28 @@ fn main() {
     };
 
     match result {
-        Ok(output) => {
+        Ok(mut output) => {
+            // run() is pure and never sees the reader, so main.rs carries the
+            // input-truncation fact onto the result.
+            output.input_truncated = input.truncated;
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {
                 println!("{}", output.to_plain(&fields));
             }
-            if lx_core::output::show_narration(cli.quiet, cli.verbose) && output.truncated {
-                eprintln!(
-                    "# results capped at {} records; the input contained more entities",
+            // Tier 2, not narration: an incomplete result set is a correctness
+            // fact, and narration is hidden exactly when stdout is piped — the
+            // case where a silently partial answer does the most damage.
+            if output.truncated {
+                lx_core::output::warn(&format!(
+                    "results capped at {} records; the input contained more entities",
                     output.records.len()
+                ));
+            }
+            if output.input_truncated {
+                lx_core::output::warn(
+                    "the input was cut short by the byte limit before extraction, so \
+                     later records were never seen. Raise --max-input-bytes and re-run.",
                 );
             }
             process::exit(exit::SUCCESS);

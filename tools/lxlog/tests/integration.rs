@@ -163,6 +163,7 @@ fn to_plain_with_anomalies() {
         summary: "One error found.".to_string(),
         used_lines: String::new(),
         capped: false,
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert!(
@@ -194,6 +195,7 @@ fn to_plain_anomaly_without_line() {
         summary: "Warning present.".to_string(),
         used_lines: String::new(),
         capped: false,
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("[WARN]"), "expected [WARN]: {plain}");
@@ -207,6 +209,7 @@ fn to_plain_no_anomalies_shows_summary() {
         summary: "All good.".to_string(),
         used_lines: String::new(),
         capped: false,
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert_eq!(plain, "All good.");

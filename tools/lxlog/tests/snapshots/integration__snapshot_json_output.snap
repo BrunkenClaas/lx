@@ -17,5 +17,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
   ],
   "summary": "Two critical issues detected: cache server down causing performance degradation, and a fatal worker thread crash.",
   "used_lines": "12 high-priority + 16 context samples (29 total lines)",
-  "capped": false
+  "capped": false,
+  "input_truncated": false
 }

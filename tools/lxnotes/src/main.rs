@@ -108,10 +108,13 @@ fn main() {
     }
 
     let max = cli.max_input_bytes.unwrap_or(config.limits.max_input_bytes);
-    let raw_input = lx_core::io::resolve_input(cli.file.as_deref(), max).unwrap_or_else(|e| {
-        print_error(&e, cli.json);
-        process::exit(e.exit_code());
-    });
+    // Checked reader: structured notes are a claim about the whole document, so
+    // a `--json` consumer must be able to see that it was cut short.
+    let raw_input =
+        lx_core::io::resolve_input_checked(cli.file.as_deref(), max).unwrap_or_else(|e| {
+            print_error(&e, cli.json);
+            process::exit(e.exit_code());
+        });
 
     if raw_input.trim().is_empty() {
         let e = lx_core::error::LxError::BadUsage(
@@ -123,7 +126,8 @@ fn main() {
 
     // Redact secrets from the input before sending to the LLM.
     let input = if cli.no_redact {
-        raw_input.clone()
+        // `.text.clone()`: `raw_input.clone()` would clone the `Input` struct.
+        raw_input.text.clone()
     } else {
         let level = lx_redact::RedactLevel::parse(&config.redact.level);
         match lx_redact::redact(&raw_input, level) {
@@ -163,7 +167,9 @@ fn main() {
 
     if cli.actions {
         match run::run_actions(&input, &config, client.as_ref()) {
-            Ok(output) => {
+            Ok(mut output) => {
+                // run() is pure and never sees the reader; main.rs carries the fact.
+                output.input_truncated = raw_input.truncated;
                 if cli.json {
                     println!("{}", serde_json::to_string_pretty(&output).unwrap());
                 } else {
@@ -178,7 +184,9 @@ fn main() {
         }
     } else {
         match run::run(&input, &config, client.as_ref()) {
-            Ok(output) => {
+            Ok(mut output) => {
+                // run() is pure and never sees the reader; main.rs carries the fact.
+                output.input_truncated = raw_input.truncated;
                 if cli.json {
                     println!("{}", serde_json::to_string_pretty(&output).unwrap());
                 } else {

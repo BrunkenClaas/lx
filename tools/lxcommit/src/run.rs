@@ -18,6 +18,11 @@ pub struct CommitOutput {
     pub scope: String,
     pub subject: String,
     pub body: String,
+    /// True when the diff was cut short by the byte limit, so this message
+    /// describes only part of the change. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl CommitOutput {

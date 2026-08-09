@@ -15,6 +15,11 @@ const MAX_INPUT_BYTES: usize = 64_000;
 pub struct Output {
     pub title: String,
     pub body: String,
+    /// True when the input was cut short by the byte limit, so this result
+    /// describes only part of the source. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {

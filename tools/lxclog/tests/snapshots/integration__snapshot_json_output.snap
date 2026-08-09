@@ -19,5 +19,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
         "Resolve config file not found on Windows"
       ]
     }
-  ]
+  ],
+  "input_truncated": false
 }

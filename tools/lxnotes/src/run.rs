@@ -20,6 +20,11 @@ pub struct Section {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Output {
     pub sections: Vec<Section>,
+    /// True when the input was cut short by the byte limit, so this result
+    /// covers only part of the source. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {
@@ -55,6 +60,11 @@ pub struct Action {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActionsOutput {
     pub actions: Vec<Action>,
+    /// True when the input was cut short by the byte limit, so these actions
+    /// cover only part of the notes. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl ActionsOutput {

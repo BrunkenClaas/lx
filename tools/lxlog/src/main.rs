@@ -145,10 +145,13 @@ fn main() {
     }
 
     let max = cli.max_input_bytes.unwrap_or(config.limits.max_input_bytes);
-    let log_content = lx_core::io::resolve_input(cli.file.as_deref(), max).unwrap_or_else(|e| {
-        print_error(&e, cli.json);
-        process::exit(e.exit_code());
-    });
+    // Checked reader: this result is a claim about the whole input, so a
+    // `--json` consumer must be able to see that it was cut short.
+    let log_content =
+        lx_core::io::resolve_input_checked(cli.file.as_deref(), max).unwrap_or_else(|e| {
+            print_error(&e, cli.json);
+            process::exit(e.exit_code());
+        });
 
     if log_content.trim().is_empty() {
         let e = lx_core::error::LxError::BadUsage(
@@ -162,7 +165,8 @@ fn main() {
     if cli.dry_run {
         let level = lx_redact::RedactLevel::parse(&config.redact.level);
         let display = if cli.no_redact {
-            log_content.clone()
+            // `.text.clone()`: `log_content.clone()` would clone the `Input` struct.
+            log_content.text.clone()
         } else {
             match lx_redact::redact(&log_content, level) {
                 Ok(r) => r,
@@ -211,18 +215,29 @@ fn main() {
     };
 
     match result {
-        Ok(output) => {
+        Ok(mut output) => {
+            // run() is pure and never sees the reader, so main.rs carries the
+            // input-truncation fact onto the result.
+            output.input_truncated = log_content.truncated;
+            // Tier 2, not narration: an incomplete analysis is a correctness
+            // fact, and narration is hidden exactly when stdout is piped.
+            if output.capped {
+                lx_core::output::warn(&format!(
+                    "log too large — only {} lines sent to the LLM; results may be incomplete",
+                    output.used_lines
+                ));
+            }
+            if output.input_truncated {
+                lx_core::output::warn(
+                    "the input was cut short by the byte limit before sampling, so later \
+                     log lines were never seen. Raise --max-input-bytes and re-run.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {
                 println!("{}", output.to_plain());
                 if lx_core::output::show_narration(cli.quiet, cli.verbose) {
-                    if output.capped {
-                        eprintln!(
-                            "warning: log too large — only {} lines sent to the LLM; results may be incomplete",
-                            output.used_lines
-                        );
-                    }
                     if output.anomalies.is_empty() {
                         eprintln!("# no anomalies detected");
                     } else {

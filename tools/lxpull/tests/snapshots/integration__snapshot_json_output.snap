@@ -1,6 +1,5 @@
 ---
 source: tools/lxpull/tests/integration.rs
-assertion_line: 89
 expression: "serde_json::to_string_pretty(&out).unwrap()"
 ---
 {
@@ -14,5 +13,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
       "name": "Bob Smith"
     }
   ],
-  "truncated": false
+  "truncated": false,
+  "input_truncated": false
 }

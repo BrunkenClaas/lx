@@ -83,6 +83,7 @@ fn to_plain_omits_run_line_when_command_empty() {
         cause: "Some error".to_string(),
         fix: "Do something".to_string(),
         command: String::new(),
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert!(
@@ -97,6 +98,7 @@ fn to_plain_includes_run_line_when_command_present() {
         cause: "Some error".to_string(),
         fix: "Do something".to_string(),
         command: "npm install".to_string(),
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("Run:    npm install"));

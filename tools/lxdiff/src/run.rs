@@ -15,6 +15,11 @@ const MAX_DIFF_BYTES: usize = 32_000;
 pub struct Output {
     pub summary: String,
     pub changes: Vec<String>,
+    /// True when the input was cut short by the byte limit, so this result
+    /// describes only part of the source. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {

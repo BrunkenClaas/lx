@@ -8,6 +8,14 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Added
 
+- **Twelve more tools report truncated input in `--json`.** `lxclog`,
+  `lxcommit`, `lxconf`, `lxcsv`, `lxdebug`, `lxdiff`, `lxgrep`, `lxlog`,
+  `lxnotes`, `lxpr`, `lxpull`, and `lxsecret` now emit `"input_truncated"`
+  alongside their result. On `lxgrep`, `lxlog`, and `lxpull` this is a *separate*
+  field from the existing `capped`/`truncated` sampling flag, because the two
+  have different remedies: sampling means "narrow the query", input truncation
+  means "raise `--max-input-bytes`". Both now warn distinctly on stderr.
+
 - **Truncated input is now visible in `--json`.** When input exceeded
   `--max-input-bytes` the tool warned on stderr and carried on — invisible to
   anything parsing stdout, so a script consuming `--json` could not tell a
@@ -19,6 +27,18 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Fixed
 
+- **`lxjson` no longer rejects input of exactly `--max-input-bytes`.** It
+  inferred "input too large" from `raw.len() >= max`, which also fired when the
+  input landed precisely on the limit with nothing dropped. It now uses the
+  reader's truncation flag, so only genuinely oversized input is refused.
+- **`lxdigest` no longer writes to stderr from inside `run()`.** Its
+  listing-truncation warning bypassed `--quiet` and broke the rule that `run()`
+  is pure and does no I/O. It now returns the warning to `main.rs` like every
+  other tool, so `--quiet` suppresses it.
+- **`lxlog` and `lxpull` no longer hide an incomplete result when piped.** Both
+  reported their capping flag as narration, which is suppressed as soon as
+  stdout is not a terminal — exactly the case where a silently partial answer
+  does the most damage. It is now a warning (tier 2), shown unless `--quiet`.
 - **Input of exactly `--max-input-bytes` is no longer reported as truncated.**
   The read loop treated "the buffer is exactly full" as overflow, so an input
   landing precisely on the limit produced a spurious truncation warning even

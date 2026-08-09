@@ -104,7 +104,9 @@ fn main() {
     }
 
     let max = cli.max_input_bytes.unwrap_or(config.limits.max_input_bytes);
-    let input = lx_core::io::resolve_input(cli.file.as_deref(), max).unwrap_or_else(|e| {
+    // Checked reader: this result is a claim about the whole input, so a
+    // `--json` consumer must be able to see that it was cut short.
+    let input = lx_core::io::resolve_input_checked(cli.file.as_deref(), max).unwrap_or_else(|e| {
         print_error(&e, cli.json);
         process::exit(e.exit_code());
     });
@@ -121,7 +123,8 @@ fn main() {
     if cli.dry_run {
         let level = lx_redact::RedactLevel::parse(&config.redact.level);
         let redacted = if cli.no_redact {
-            input.clone()
+            // `.text.clone()`: `input.clone()` would clone the `Input` struct.
+            input.text.clone()
         } else {
             match lx_redact::redact(&input, level) {
                 Ok(r) => r,
@@ -162,11 +165,14 @@ fn main() {
     };
 
     match result {
-        Ok((output, warnings)) => {
+        Ok((mut output, warnings)) => {
             // Tier-2 warnings (e.g. input truncation): shown unless --quiet.
             for w in &warnings {
                 lx_core::output::warn(w);
             }
+            // The reader already warned on stderr; carry the fact into --json
+            // so a scripted consumer can tell a partial result from a full one.
+            output.input_truncated = input.truncated;
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

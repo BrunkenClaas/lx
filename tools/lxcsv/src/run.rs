@@ -21,6 +21,11 @@ pub struct Output {
     pub answer: String,
     /// Description of how many rows were used in the analysis.
     pub used_rows: String,
+    /// True when the input was cut short by the byte limit, so this result
+    /// covers only part of the source. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {

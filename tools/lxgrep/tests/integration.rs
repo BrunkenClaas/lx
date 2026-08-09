@@ -285,6 +285,7 @@ fn to_plain_is_grep_compatible() {
             snippet: "    some_code();".to_string(),
         }],
         capped: false,
+        input_truncated: false,
     };
     let plain = out.to_plain();
     // grep-compatible format: file:line: snippet
