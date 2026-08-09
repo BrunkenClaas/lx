@@ -116,10 +116,26 @@ num_ctx = 32768                 # LX_NUM_CTX
 reasoning = false               # LX_REASONING  (true/false)
 
 [limits]
-# Maximum bytes read from stdin before truncation.
+# Maximum bytes READ from stdin or a file before truncation.
 # A warning is printed to stderr when the limit is hit; the call still proceeds.
-# 524288 = 512 KiB. Set higher for large codebases, lower for interactive use.
-max_input_bytes = 524288        # LX_MAX_INPUT_BYTES  (512 KiB)
+# 2097152 = 2 MiB. Set higher for very large codebases, lower for interactive use.
+max_input_bytes = 2097152       # LX_MAX_INPUT_BYTES  (2 MiB)
+
+# This is a READ budget, not a send budget — raising it does NOT send more to
+# the model, and does not make requests more expensive:
+#
+#   * Tools that sample (lxgrep, lxlog, lxcsv) keep their own fixed candidate
+#     budgets. A larger read just means the sampler chooses from the whole input
+#     instead of its first slice, so a match late in a big file becomes
+#     reachable. What is sent stays the same size.
+#   * Tools that send their input keep their own per-tool ceiling (24-64 KB,
+#     sized so the request fits the model's context window). Those ceilings bind
+#     long before this one does.
+#
+# So the cost of raising this is memory and local scan time, not tokens. The
+# 2 MiB default keeps a tool's peak well under ~50 MB. Tools that walk a
+# directory apply a separate 64 MiB aggregate ceiling, since this limit is
+# per file and a tree multiplies it by the file count.
 
 # Global ceiling on LLM response length. Each request uses min(per-tool budget,
 # this) — the smaller wins. The default (4096) equals the suite's largest per-tool

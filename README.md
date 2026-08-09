@@ -281,7 +281,7 @@ timeout_secs = 30
 max_retries = 3
 
 [limits]
-max_input_bytes = 524288   # 512 KiB
+max_input_bytes = 2097152  # 2 MiB
 max_output_tokens = 1024
 
 [redact]

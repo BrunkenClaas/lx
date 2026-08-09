@@ -295,3 +295,29 @@ fn to_plain_is_grep_compatible() {
         assert!(!line.starts_with('#'), "comment on stdout: {line:?}");
     }
 }
+
+#[test]
+fn prompt_size_is_bounded_by_the_candidate_budget_not_the_input_size() {
+    // The merge criterion for raising `limits.max_input_bytes`: what is SENT is
+    // fixed by the candidate budget, so a bigger read budget costs memory and
+    // scan time but not tokens. If this number tracks the input size, the
+    // sampler has stopped bounding the prompt and the raise becomes a cost
+    // regression.
+    let small: String = (0..2_000).map(|i| format!("./src/mod{i}.rs\n")).collect();
+    let large: String = (0..40_000).map(|i| format!("./src/mod{i}.rs\n")).collect();
+
+    let p_small = lxgrep::run::preview_user_message("build related stuff", &[("f", &small)]);
+    let p_large = lxgrep::run::preview_user_message("build related stuff", &[("f", &large)]);
+
+    assert!(
+        p_large.len() < 3 * p_small.len(),
+        "prompt grew with input: {} bytes for 2k lines vs {} bytes for 40k",
+        p_small.len(),
+        p_large.len()
+    );
+    assert!(
+        p_large.len() < 200_000,
+        "prompt must stay far below the input size; was {} bytes",
+        p_large.len()
+    );
+}

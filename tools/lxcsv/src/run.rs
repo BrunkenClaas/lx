@@ -233,7 +233,17 @@ fn build_user_message(
 ) -> (String, String) {
     let total_rows = rows.len();
     let sample_count = total_rows.min(MAX_SAMPLE_ROWS);
-    let sample = &rows[..sample_count];
+    // Spread the sample across the whole file rather than taking the first N
+    // rows. A head slice would answer "what is the trend" from the oldest rows
+    // of a date-sorted file — local code deciding what is relevant, which
+    // §7.5 forbids. Aggregates below still cover every row.
+    let sample: Vec<&Vec<String>> = if total_rows <= sample_count {
+        rows.iter().collect()
+    } else {
+        (0..sample_count)
+            .map(|i| &rows[i * (total_rows - 1) / (sample_count - 1).max(1)])
+            .collect()
+    };
 
     let col_names = headers.join(", ");
     let stats = compute_stats(headers, rows);
@@ -282,7 +292,11 @@ fn build_user_message(
     let used_rows = if sample_count == total_rows {
         format!("all {} rows used", total_rows)
     } else {
-        format!("{} of {} rows sampled", sample_count, total_rows)
+        // Name the spread: "50 of 20000" alone reads as the first 50.
+        format!(
+            "{} of {} rows sampled evenly across the file (aggregates cover all rows)",
+            sample_count, total_rows
+        )
     };
 
     (msg, used_rows)
@@ -489,5 +503,25 @@ mod tests {
         assert!(msg.contains("GROUP_TOTALS:"), "should include GROUP_TOTALS");
         assert!(msg.contains("North"), "should include North group");
         assert!(msg.contains("South"), "should include South group");
+    }
+
+    #[test]
+    fn sample_spans_the_whole_file_not_just_the_head() {
+        // A head slice answers "what is the trend" from the oldest rows only.
+        // The sample must cover the whole file so late rows are representable
+        // (design_document.md §7.5 obligation 1).
+        let headers = vec!["date".to_string(), "amount".to_string()];
+        let rows: Vec<Vec<String>> = (0..10_000)
+            .map(|i| vec![format!("2020-01-{:05}", i), format!("{i}")])
+            .collect();
+        let (msg, _used) = build_user_message(&headers, &rows, "what is the trend?");
+        assert!(
+            msg.contains("2020-01-09999"),
+            "the last row must be reachable in the sample"
+        );
+        assert!(
+            msg.contains("2020-01-00000"),
+            "the first row must also be present"
+        );
     }
 }
