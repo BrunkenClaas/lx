@@ -154,7 +154,11 @@ fn main() {
     });
 
     match run::run(&input, &target_format, &config, client.as_ref()) {
-        Ok(output) => {
+        Ok((output, warnings)) => {
+            // Tier-2 warnings (e.g. input truncation): shown unless --quiet.
+            for w in &warnings {
+                lx_core::output::warn(w);
+            }
             if cli.json {
                 // Full envelope → stdout
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());

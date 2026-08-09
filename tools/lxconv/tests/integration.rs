@@ -19,7 +19,7 @@ fn output_schema_is_valid() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     // JSON → YAML forces LLM (local doesn't handle YAML).
-    let out = run(
+    let (out, _warnings) = run(
         r#"{"region":"west","count":42}"#,
         &Format::Yaml,
         &config,
@@ -44,7 +44,7 @@ fn json_array_to_csv_local() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     let input = r#"[{"name":"Alice","score":95},{"name":"Bob","score":80}]"#;
-    let out = run(input, &Format::Csv, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Csv, &config, &client).unwrap();
     assert_eq!(out.method, "local");
     let lines: Vec<&str> = out.content.lines().collect();
     assert!(lines[0].contains("name"), "header row: {}", lines[0]);
@@ -58,7 +58,7 @@ fn csv_to_json_local() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     let input = "city,pop\nBerlin,3700000\nParis,2100000\n";
-    let out = run(input, &Format::Json, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Json, &config, &client).unwrap();
     assert_eq!(out.method, "local");
     let v: serde_json::Value = serde_json::from_str(&out.content).unwrap();
     let arr = v.as_array().unwrap();
@@ -73,7 +73,7 @@ fn json_to_json_passthrough_local() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     let input = r#"{"key":"value","num":1}"#;
-    let out = run(input, &Format::Json, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Json, &config, &client).unwrap();
     assert_eq!(out.method, "local");
     // Result must be valid JSON.
     serde_json::from_str::<serde_json::Value>(&out.content).unwrap();
@@ -84,7 +84,7 @@ fn csv_to_csv_passthrough_local() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     let input = "name,age\nAlice,30\nBob,25\n";
-    let out = run(input, &Format::Csv, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Csv, &config, &client).unwrap();
     assert_eq!(out.method, "local");
     assert_eq!(out.content, input);
 }
@@ -96,7 +96,7 @@ fn yaml_target_uses_llm() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     let input = r#"{"region":"west","count":42}"#;
-    let out = run(input, &Format::Yaml, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Yaml, &config, &client).unwrap();
     assert_eq!(out.method, "llm");
     assert!(!out.content.is_empty());
 }
@@ -106,7 +106,7 @@ fn xml_target_uses_llm() {
     let client = MockLlmClient::returning(mock_xml_response());
     let config = Config::default();
     let input = r#"{"region":"west","count":42}"#;
-    let out = run(input, &Format::Xml, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Xml, &config, &client).unwrap();
     assert_eq!(out.method, "llm");
     assert!(out.content.contains("<"));
 }
@@ -173,7 +173,7 @@ fn snapshot_json_to_csv_plain() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     let input = r#"[{"name":"Alice","score":95},{"name":"Bob","score":80}]"#;
-    let out = run(input, &Format::Csv, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Csv, &config, &client).unwrap();
     insta::assert_snapshot!(out.to_plain());
 }
 
@@ -182,6 +182,16 @@ fn snapshot_json_to_csv_json_mode() {
     let client = MockLlmClient::returning(mock_yaml_response());
     let config = Config::default();
     let input = r#"[{"name":"Alice","score":95},{"name":"Bob","score":80}]"#;
-    let out = run(input, &Format::Csv, &config, &client).unwrap();
+    let (out, _warnings) = run(input, &Format::Csv, &config, &client).unwrap();
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
+}
+
+#[test]
+fn oversized_input_is_capped_before_the_llm_call() {
+    let client = MockLlmClient::returning(mock_yaml_response());
+    // Deliberately not locally-convertible, so the LLM path is exercised.
+    let huge = format!("not json or csv {}", "x".repeat(40_000));
+    let (_out, warnings) = run(&huge, &Format::Yaml, &Config::default(), &client).unwrap();
+    assert!(warnings.iter().any(|w| w.contains("truncated")));
+    assert!(client.last_request().user.len() <= 24_000 + 1_000);
 }

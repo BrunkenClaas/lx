@@ -1006,6 +1006,39 @@ Note that a tool reading *an intent string* from stdin is not sampling input:
 stdin is a different (and much smaller) problem. `lxpull` likewise does not
 sample — it extracts from whatever it is given and caps the model's *output*.
 
+#### 7.5.1 Every tool that sends input to the model needs its own ceiling
+
+`limits.max_input_bytes` is a **read** budget, not a send budget. Its default
+(512 KiB) is roughly four times the default context window (`llm.num_ctx`, 32k
+tokens ≈ 128 KB of text), so a tool that passes what it read straight into the
+request is already over-sending: local providers silently cut the request short,
+hosted ones bill for all of it.
+
+**A tool that embeds its input in the request must therefore declare its own
+`MAX_INPUT_BYTES`**, sized to what the tool does rather than copied:
+
+- reply as long as the input (`lxconv`, `lxtl`) — the tightest, since both halves
+  share one context window;
+- every record must stay visible (`lxpull`) — no sampling is possible, so the
+  ceiling is the only bound;
+- the model needs the file to answer at all (`lxpatch`) — more generous, but
+  still inside the window.
+
+Truncation is reported through the standard `(Output, Vec<String>)` warning
+channel so `main.rs` can emit it as tier 2 and `--quiet` can suppress it —
+never with `eprintln!` from inside `run()`, which is not pure and ignores
+`--quiet`.
+
+Whether a tool needs a ceiling is decided by **what reaches `Request.user`**, not
+by whether it reads stdin. `lxredact` and `lxsecret` read arbitrarily large
+input, scan it locally, and send only the *findings* — a per-item JSON summary —
+so neither needs one. Check the request construction before adding a cap.
+
+**Where the input is record-oriented, trim the cut back to the last complete
+line.** Half a CSV row or JSON line does not parse, and tools like `lxconv` and
+`lxgraph` parse locally before the model is involved, so a mid-record cut turns
+a truncation warning into a hard failure.
+
 ---
 
 ## 8. Configuration Reference
@@ -1745,6 +1778,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-09 | New §7.5.1: every tool that embeds its input in the request declares its own `MAX_INPUT_BYTES`, because `limits.max_input_bytes` is a read budget whose default already exceeds the default context window ~4×; sizing guidance per tool shape; the decision rests on what reaches `Request.user` (`lxredact`/`lxsecret` send only findings and need no cap); record-oriented input must be trimmed to the last complete line. | BrunkenClaas |
 | 2026-08-09 | §7.5: named `truncate(budget)` on an ordered candidate list as the standard way the whole-input rule breaks, and required even thinning plus a reserved coverage share at *every* budget enforcement point (`lxgrep` had the bug in all three of its own); documented `DEFAULT_MAX_TOTAL_INPUT_BYTES` as the aggregate ceiling directory-walking tools need on top of the per-file limit, and why exhausting it must error rather than stop quietly. | BrunkenClaas |
 | 2026-08-09 | §7.5: separated sampling (`capped`) from input truncation (`input_truncated`) as distinct facts with distinct remedies; stated that the incomplete-results warning is tier-2 and never narration; corrected the sampler list (`lxdupe` does not exist; `lxpull` extracts and caps output rather than sampling; `lxfind` reads an intent string, not searched content). | BrunkenClaas |
 | 2026-08-09 | Input readers gained `_checked` twins returning `Input { text, truncated }`, so a tool whose result is a claim about the whole input can report truncation in `--json` (§4 `io`); documented `truncate_at_char_boundary` as the only correct way to apply a byte cap to a `&str`; corrected the stale `resolve_input(file, max_bytes, timeout_ms)` signature (no `timeout_ms` exists). | BrunkenClaas |

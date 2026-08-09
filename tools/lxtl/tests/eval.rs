@@ -13,7 +13,7 @@ fn eval_output_structure() {
     let client = RecordingLlmClient::new(inner);
 
     let input = "The deployment was successful and all services are running normally.";
-    let out = run(input, "French", &config, &client).expect("run() failed");
+    let (out, _warnings) = run(input, "French", &config, &client).expect("run() failed");
 
     assert!(!out.text.is_empty(), "translated text should not be empty");
 
@@ -32,7 +32,7 @@ fn eval_preserves_meaning_across_languages() {
     let client = RecordingLlmClient::new(inner);
 
     let input = "Please restart the service after updating the configuration.";
-    let out = run(input, "German", &config, &client).expect("run() failed");
+    let (out, _warnings) = run(input, "German", &config, &client).expect("run() failed");
 
     assert!(!out.text.is_empty(), "translated text should not be empty");
 }

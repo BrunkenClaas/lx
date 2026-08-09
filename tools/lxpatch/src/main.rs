@@ -109,7 +109,11 @@ fn main() {
     });
 
     match run::run(&file_content, &description, &config, client.as_ref()) {
-        Ok(output) => {
+        Ok((output, warnings)) => {
+            // Tier-2 warnings (e.g. input truncation): shown unless --quiet.
+            for w in &warnings {
+                lx_core::output::warn(w);
+            }
             if output.dangerous {
                 eprintln!(
                     "DANGER: The generated diff contains a potentially destructive pattern. \

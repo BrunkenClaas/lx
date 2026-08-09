@@ -197,7 +197,11 @@ fn main() {
     };
 
     match result {
-        Ok(mut output) => {
+        Ok((mut output, warnings)) => {
+            // Tier-2 warnings (e.g. input truncation): shown unless --quiet.
+            for w in &warnings {
+                lx_core::output::warn(w);
+            }
             // run() is pure and never sees the reader, so main.rs carries the
             // input-truncation fact onto the result.
             output.input_truncated = input.truncated;

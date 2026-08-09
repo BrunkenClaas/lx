@@ -27,6 +27,19 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Fixed
 
+- **Seven tools no longer send unbounded input to the model.** `lxclass`,
+  `lxconv`, `lxgraph`, `lxnotes`, `lxpatch`, `lxpull`, and `lxtl` passed whatever
+  `limits.max_input_bytes` allowed straight into the request — 512 KiB by
+  default, which is already about four times the default context window
+  (`llm.num_ctx`, 32k tokens). On a local model the provider silently cut the
+  request short; on a hosted one it was billed in full. Each now has an explicit
+  per-tool ceiling sized to what it does — 24 KB where the reply is as long as
+  the input (`lxconv`, `lxtl`), 64 KB where every record must stay visible
+  (`lxpull`) — and warns on stderr when it fires. For `lxconv` and `lxgraph`,
+  which parse their input as records locally, the cut is trimmed back to the
+  last complete line: half a CSV row does not parse and would have failed the
+  whole conversion.
+
 - **`lxgrep` now samples the whole input instead of only its head.** When a file
   produced more candidates than the budget allowed, the sampler sorted them by
   line number and truncated — which keeps the *lowest* line numbers, so the

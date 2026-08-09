@@ -12,7 +12,7 @@ fn eval_spam_classification() {
     };
     let client = lx_llm::client_from_config(&config, false).expect("client must build");
     let labels = vec!["spam".to_string(), "ham".to_string()];
-    let out = lxclass::run::run(
+    let (out, _warnings) = lxclass::run::run(
         "Congratulations! You have won a FREE prize. Click here now!",
         &labels,
         &config,
@@ -50,7 +50,7 @@ fn eval_sentiment_classification() {
         "negative".to_string(),
         "neutral".to_string(),
     ];
-    let out = lxclass::run::run(
+    let (out, _warnings) = lxclass::run::run(
         "The product works great and delivery was fast. Highly recommended!",
         &labels,
         &config,

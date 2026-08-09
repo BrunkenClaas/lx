@@ -9,6 +9,14 @@ pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
 /// Generous limit — converted output can be large (e.g. XML from dense JSON).
 const MAX_TOKENS: u32 = 4096;
 
+/// Maximum input bytes sent to the model.
+///
+/// Conversion reproduces the whole document in the target format, so the reply
+/// is roughly as large as the input and both must fit one context window
+/// (`llm.num_ctx`, 32k tokens by default). At `MAX_TOKENS = 4096` out, ~24 KB in
+/// is the practical ceiling; larger documents should be converted in chunks.
+const MAX_INPUT_BYTES: usize = 24_000;
+
 /// Supported target formats.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Format {
@@ -251,6 +259,28 @@ fn try_local_convert(input: &str, target: &Format) -> Option<String> {
 
 // ── Core function ─────────────────────────────────────────────────────────────
 
+/// Truncate very large input to keep the request inside the model's context
+/// window, collecting a tier-2 warning (emitted by main.rs) if it fired.
+/// Pure — no I/O.
+fn truncate_input(input: &str) -> (&str, Vec<String>) {
+    if input.len() > MAX_INPUT_BYTES {
+        let cut = lx_core::io::truncate_at_char_boundary(input, MAX_INPUT_BYTES);
+        // Trim back to the last complete line: a half-written CSV row or JSON
+        // line does not parse, and `try_local_convert` runs on this text before
+        // the model ever sees it, so the cap must land on a record boundary.
+        let cut = match cut.rfind('\n') {
+            Some(i) => &cut[..=i],
+            None => cut,
+        };
+        (
+            cut,
+            vec![format!("input truncated to {MAX_INPUT_BYTES} bytes")],
+        )
+    } else {
+        (input, Vec::new())
+    }
+}
+
 /// Core logic for `lxconv`.
 ///
 /// Pure function: no I/O, no process::exit. Testable with MockLlmClient.
@@ -264,17 +294,22 @@ pub fn run(
     target: &Format,
     config: &Config,
     client: &dyn LlmClient,
-) -> Result<Output, LxError> {
+) -> Result<(Output, Vec<String>), LxError> {
     if input.trim().is_empty() {
         return Err(LxError::BadUsage("no input provided".to_string()));
     }
 
+    let (input, warnings) = truncate_input(input);
+
     // Attempt local conversion first (fast, no network).
     if let Some(content) = try_local_convert(input, target) {
-        return Ok(Output {
-            content,
-            method: "local".to_string(),
-        });
+        return Ok((
+            Output {
+                content,
+                method: "local".to_string(),
+            },
+            warnings,
+        ));
     }
 
     // Fallback: ask the LLM.
@@ -306,10 +341,13 @@ pub fn run(
         ));
     }
 
-    Ok(Output {
-        content: out.content,
-        method: "llm".to_string(),
-    })
+    Ok((
+        Output {
+            content: out.content,
+            method: "llm".to_string(),
+        },
+        warnings,
+    ))
 }
 
 // ── Unit tests ────────────────────────────────────────────────────────────────

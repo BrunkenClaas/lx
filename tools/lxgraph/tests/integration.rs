@@ -16,7 +16,7 @@ fn sample_csv() -> &'static str {
 fn output_schema_is_valid() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
-    let out = run(sample_csv(), &config, &client).unwrap();
+    let (out, _warnings) = run(sample_csv(), &config, &client).unwrap();
     assert!(!out.chart.is_empty(), "chart must not be empty");
     assert!(!out.series.is_empty(), "series must not be empty");
     assertions::assert_request_invariants(&client.last_request());
@@ -28,7 +28,7 @@ fn output_schema_is_valid() {
 fn snapshot_plain_output() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
-    let out = run(sample_csv(), &config, &client).unwrap();
+    let (out, _warnings) = run(sample_csv(), &config, &client).unwrap();
     insta::assert_snapshot!(out.to_plain());
 }
 
@@ -36,7 +36,7 @@ fn snapshot_plain_output() {
 fn snapshot_json_output() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
-    let out = run(sample_csv(), &config, &client).unwrap();
+    let (out, _warnings) = run(sample_csv(), &config, &client).unwrap();
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
 }
 
@@ -178,4 +178,22 @@ fn to_plain_returns_chart() {
         series: vec!["A".to_string()],
     };
     assert_eq!(out.to_plain(), "A | ████ 100");
+}
+
+#[test]
+fn oversized_input_is_capped_before_the_llm_call() {
+    // Without an inner cap the whole of `limits.max_input_bytes` reached the
+    // model verbatim — already several times the default context window.
+    //
+    // Fixed-width rows so the byte cap lands on a line boundary: a partial
+    // trailing row would fail local parsing before the cap could be observed,
+    // which is a property of this tool's input format, not of the cap.
+    let client = MockLlmClient::returning(mock_response());
+    let mut huge = String::new();
+    for i in 0..8_000 {
+        huge.push_str(&format!("label{:03},{:03}\n", i % 1000, i % 100));
+    }
+    let (_out, warnings) = run(&huge, &Config::default(), &client).unwrap();
+    assert!(warnings.iter().any(|w| w.contains("truncated")));
+    assert!(client.last_request().user.len() <= 32_000);
 }

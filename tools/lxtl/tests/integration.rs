@@ -7,7 +7,7 @@ use lxtl::run;
 #[test]
 fn output_schema_is_valid() {
     let client = MockLlmClient::returning(r#"{"text":"Bonjour le monde"}"#);
-    let out = run("Hello world", "French", &Config::default(), &client).unwrap();
+    let (out, _warnings) = run("Hello world", "French", &Config::default(), &client).unwrap();
     assert!(!out.text.is_empty());
     assert_request_invariants(&client.last_request());
 }
@@ -72,13 +72,22 @@ fn system_prompt_has_untrusted_instruction() {
 #[test]
 fn snapshot_plain_output() {
     let client = MockLlmClient::returning(r#"{"text":"Bonjour le monde"}"#);
-    let out = run("Hello world", "French", &Config::default(), &client).unwrap();
+    let (out, _warnings) = run("Hello world", "French", &Config::default(), &client).unwrap();
     insta::assert_snapshot!(out.text);
 }
 
 #[test]
 fn snapshot_json_output() {
     let client = MockLlmClient::returning(r#"{"text":"Bonjour le monde"}"#);
-    let out = run("Hello world", "French", &Config::default(), &client).unwrap();
+    let (out, _warnings) = run("Hello world", "French", &Config::default(), &client).unwrap();
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
+}
+
+#[test]
+fn oversized_input_is_capped_before_the_llm_call() {
+    let client = MockLlmClient::returning(r#"{"text":"Bonjour"}"#);
+    let huge = "hello world ".repeat(4_000); // ~48 KB
+    let (_out, warnings) = run(&huge, "French", &Config::default(), &client).unwrap();
+    assert!(warnings.iter().any(|w| w.contains("truncated")));
+    assert!(client.last_request().user.len() <= 24_000);
 }
