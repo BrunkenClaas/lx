@@ -262,21 +262,30 @@ fn snapshot_plain_output() {
     // detector fires (a keyword like ACCESS_KEY would also trigger the generic
     // high-entropy path, which is correct but noisier to snapshot).
     let findings = run_local(&format!("AWS_ID={AWS_KEY}"), false);
-    let out = Output { findings };
+    let out = Output {
+        findings,
+        input_truncated: false,
+    };
     insta::assert_snapshot!(out.to_plain());
 }
 
 #[test]
 fn snapshot_json_output() {
     let findings = run_local(&format!("AWS_ID={AWS_KEY}"), false);
-    let out = Output { findings };
+    let out = Output {
+        findings,
+        input_truncated: false,
+    };
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
 }
 
 #[test]
 fn json_output_is_valid_json() {
     let findings = run_local(&format!("GITHUB_TOKEN={GITHUB_PAT}"), false);
-    let out = Output { findings };
+    let out = Output {
+        findings,
+        input_truncated: false,
+    };
     let json = serde_json::to_string(&out).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
     assert!(

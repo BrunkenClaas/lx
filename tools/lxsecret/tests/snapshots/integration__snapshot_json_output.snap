@@ -9,5 +9,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
       "location": "stdin:1",
       "masked": "AKIA****PQRF"
     }
-  ]
+  ],
+  "input_truncated": false
 }

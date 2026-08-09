@@ -17,5 +17,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
         "John to finish dashboard by Friday"
       ]
     }
-  ]
+  ],
+  "input_truncated": false
 }

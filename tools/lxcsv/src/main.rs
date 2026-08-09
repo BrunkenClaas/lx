@@ -164,12 +164,14 @@ fn main() {
             process::exit(exit::SECURITY_ABORT);
         }
 
-        lx_core::io::read_file_limited(file_path, max_bytes).unwrap_or_else(|e| {
+        // Checked readers: an answer about a CSV is a claim about all its rows,
+        // so a `--json` consumer must be able to see that it was cut short.
+        lx_core::io::read_file_limited_checked(file_path, max_bytes).unwrap_or_else(|e| {
             print_error(&e, cli.json);
             process::exit(e.exit_code());
         })
     } else {
-        lx_core::io::resolve_input(None, max_bytes).unwrap_or_else(|e| {
+        lx_core::io::resolve_input_checked(None, max_bytes).unwrap_or_else(|e| {
             print_error(&e, cli.json);
             process::exit(e.exit_code());
         })
@@ -218,7 +220,10 @@ fn main() {
     };
 
     match result {
-        Ok(output) => {
+        Ok(mut output) => {
+            // run() is pure and never sees the reader, so main.rs carries the
+            // input-truncation fact onto the result.
+            output.input_truncated = csv_content.truncated;
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

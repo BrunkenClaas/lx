@@ -173,13 +173,15 @@ fn main() {
     };
 
     // Determine mode and inputs.
-    let (input, existing, mode) = if let Some(ref desc) = cli.description {
+    let (input, existing, mode, input_truncated) = if let Some(ref desc) = cli.description {
         // Positional description given.
         let existing = read_existing_config(cli.json);
         if existing.is_some() {
-            (desc.clone(), existing, ConfigMode::Edit)
+            // Create/edit read an existing file to MODIFY; truncation there is a
+            // different concern from auditing a whole config, so it is not flagged.
+            (desc.clone(), existing, ConfigMode::Edit, false)
         } else {
-            (desc.clone(), None, ConfigMode::Create)
+            (desc.clone(), None, ConfigMode::Create, false)
         }
     } else {
         // No description: audit existing config (stdin/--file required).
@@ -219,12 +221,14 @@ fn main() {
                 print_error(&err, cli.json);
                 process::exit(exit::SECURITY_ABORT);
             }
-            lx_core::io::read_file_limited(file_path, max_bytes).unwrap_or_else(|e| {
+            // Checked readers: an audit is a claim about the whole config, so a
+            // `--json` consumer must be able to see that it was cut short.
+            lx_core::io::read_file_limited_checked(file_path, max_bytes).unwrap_or_else(|e| {
                 print_error(&e, cli.json);
                 process::exit(e.exit_code());
             })
         } else {
-            lx_core::io::resolve_input(None, max_bytes).unwrap_or_else(|e| {
+            lx_core::io::resolve_input_checked(None, max_bytes).unwrap_or_else(|e| {
                 print_error(&e, cli.json);
                 process::exit(e.exit_code());
             })
@@ -236,7 +240,8 @@ fn main() {
             print_error(&e, cli.json);
             process::exit(exit::BAD_USAGE);
         }
-        (content, None, ConfigMode::Audit)
+        let truncated = content.truncated;
+        (content.into_text(), None, ConfigMode::Audit, truncated)
     };
 
     // --dry-run: show what would be sent to the LLM, then exit.
@@ -289,11 +294,13 @@ fn main() {
     };
 
     match result {
-        Ok((output, warnings)) => {
+        Ok((mut output, warnings)) => {
             // Tier-2 warnings (e.g. input truncation): shown unless --quiet.
             for w in &warnings {
                 lx_core::output::warn(w);
             }
+            // The reader already warned on stderr; carry the fact into --json.
+            output.input_truncated = input_truncated;
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

@@ -145,7 +145,9 @@ pub fn run(
     no_redact: bool,
     config: &Config,
     client: &dyn LlmClient,
-) -> Result<Output, LxError> {
+) -> Result<(Output, Vec<String>), LxError> {
+    // Tier-2 warnings collected for main.rs to emit — run() stays pure.
+    let mut warnings: Vec<String> = Vec::new();
     // fsbound: resolve the root before walking.
     let canonical_root = std::fs::canonicalize(root_path).map_err(|e| {
         LxError::BadUsage(format!("cannot resolve path {}: {e}", root_path.display()))
@@ -169,10 +171,9 @@ pub fn run(
 
     // Truncate if needed.
     let listing = if raw_listing.len() > MAX_LISTING_BYTES {
-        eprintln!(
-            "warning: directory listing truncated to {} bytes",
-            MAX_LISTING_BYTES
-        );
+        warnings.push(format!(
+            "directory listing truncated to {MAX_LISTING_BYTES} bytes"
+        ));
         lx_core::io::truncate_at_char_boundary(&raw_listing, MAX_LISTING_BYTES)
     } else {
         &raw_listing
@@ -237,10 +238,13 @@ pub fn run(
         })
         .collect();
 
-    Ok(Output {
-        summary: out.summary,
-        files,
-    })
+    Ok((
+        Output {
+            summary: out.summary,
+            files,
+        },
+        warnings,
+    ))
 }
 
 // ── Unit tests ────────────────────────────────────────────────────────────────

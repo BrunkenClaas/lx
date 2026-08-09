@@ -937,8 +937,7 @@ values raised together.
 ### 7.5 Input sampling — volume, never relevance
 
 Tools that can be handed more input than fits one call (`lxgrep`, `lxlog`,
-`lxfind`, `lxdupe`, `lxpull`) sample it down locally before the LLM call. The
-governing rule:
+`lxcsv`) sample it down locally before the LLM call. The governing rule:
 
 > **Local code decides *how much* content the model sees. The model decides what
 > is relevant. Local code must never decide that something is irrelevant.**
@@ -968,7 +967,22 @@ A sampling budget becomes a relevance gate whenever it discards candidates
 
 When input is sampled down, the tool sets a `capped` flag and warns on stderr
 that results may be incomplete (tier 2 — see §9.2). Silence here is a correctness
-bug: a partial answer that looks complete is worse than a slow one.
+bug: a partial answer that looks complete is worse than a slow one. Because that
+warning must survive a pipeline, it is a **warning and not narration** —
+narration is hidden as soon as stdout is not a terminal, which is exactly the
+case where a silently partial answer does the most damage.
+
+**Sampling and input truncation are separate facts and get separate flags.**
+`capped` means the sampler dropped candidates it had; `input_truncated` (from
+the `_checked` readers, §4) means the byte limit cut the input short *before*
+the sampler ever saw it. The remedies differ — narrow the query versus raise
+`--max-input-bytes` — so `lxgrep`, `lxlog` and `lxpull` carry both and warn
+about each distinctly. Merging them would tell the user to do the wrong thing.
+
+Note that a tool reading *an intent string* from stdin is not sampling input:
+`lxfind` takes a description and searches the filesystem, so truncating its
+stdin is a different (and much smaller) problem. `lxpull` likewise does not
+sample — it extracts from whatever it is given and caps the model's *output*.
 
 ---
 
@@ -1709,6 +1723,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-09 | §7.5: separated sampling (`capped`) from input truncation (`input_truncated`) as distinct facts with distinct remedies; stated that the incomplete-results warning is tier-2 and never narration; corrected the sampler list (`lxdupe` does not exist; `lxpull` extracts and caps output rather than sampling; `lxfind` reads an intent string, not searched content). | BrunkenClaas |
 | 2026-08-09 | Input readers gained `_checked` twins returning `Input { text, truncated }`, so a tool whose result is a claim about the whole input can report truncation in `--json` (§4 `io`); documented `truncate_at_char_boundary` as the only correct way to apply a byte cap to a `&str`; corrected the stale `resolve_input(file, max_bytes, timeout_ms)` signature (no `timeout_ms` exists). | BrunkenClaas |
 | 2026-08-04 | Release ritual step 3 (the between-release `-dev` bump) changed from a separate PR to a direct commit on `main`, with the carve-out's conditions stated: immediately after tagging, version-only, CI still runs on the push. Step 2 now says to check out `main` and pull before tagging, and to chain the commands. §6.2 + CONTRIBUTING. | BrunkenClaas |
 | 2026-08-04 | Released 1.0.6 (all crates 1.0.6-dev→1.0.6; suite label stays `2026-07`). Bundled the `lxgrep` line-oriented sampling fix and the capped-results wording fix. | BrunkenClaas |

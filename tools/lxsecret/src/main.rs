@@ -173,25 +173,33 @@ fn main() {
         } else {
             // Single file — read content then scan.
             let parent = path.parent().unwrap_or(path);
-            let content = lx_core::io::read_file(path, max, Some(parent)).unwrap_or_else(|e| {
-                print_error(&e, cli.json);
-                process::exit(e.exit_code());
-            });
-            scan_text_with_client(
+            // Checked reader: a secret scan is a claim about the whole file, so
+            // a `--json` consumer must be able to see that it was cut short.
+            let content =
+                lx_core::io::read_file_checked(path, max, Some(parent)).unwrap_or_else(|e| {
+                    print_error(&e, cli.json);
+                    process::exit(e.exit_code());
+                });
+            let mut o = scan_text_with_client(
                 &content,
                 path.display().to_string(),
                 &config,
                 client_ref,
                 cli.strict,
-            )
+            );
+            o.input_truncated = content.truncated;
+            o
         }
     } else {
         // Stdin scan.
-        let input = lx_core::io::resolve_input(None, max).unwrap_or_else(|e| {
+        let input = lx_core::io::resolve_input_checked(None, max).unwrap_or_else(|e| {
             print_error(&e, cli.json);
             process::exit(e.exit_code());
         });
-        scan_text_with_client(&input, "stdin".to_string(), &config, client_ref, cli.strict)
+        let mut o =
+            scan_text_with_client(&input, "stdin".to_string(), &config, client_ref, cli.strict);
+        o.input_truncated = input.truncated;
+        o
     };
 
     // Emit result.
@@ -225,9 +233,13 @@ fn scan_text_with_client(
     strict: bool,
 ) -> run::Output {
     match client {
-        Some(cl) => run::run(input, config, cl, strict).unwrap_or(run::Output { findings: vec![] }),
+        Some(cl) => run::run(input, config, cl, strict).unwrap_or(run::Output {
+            findings: vec![],
+            input_truncated: false,
+        }),
         None => run::Output {
             findings: run::run_local(input, strict),
+            input_truncated: false,
         },
     }
 }

@@ -20,7 +20,7 @@ fn safe_root() -> &'static Path {
 fn output_schema_is_valid() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
-    let out = run(safe_root(), false, &config, &client).unwrap();
+    let (out, _warnings) = run(safe_root(), false, &config, &client).unwrap();
     assert!(!out.summary.is_empty(), "summary must not be empty");
     let _: &Vec<String> = &out.files;
     assertions::assert_request_invariants(&client.last_request());
@@ -118,7 +118,7 @@ fn to_plain_is_pipe_safe() {
 fn empty_files_response_is_valid() {
     let client = MockLlmClient::returning(empty_files_response());
     let config = Config::default();
-    let out = run(safe_root(), false, &config, &client).unwrap();
+    let (out, _warnings) = run(safe_root(), false, &config, &client).unwrap();
     assert!(!out.summary.is_empty(), "summary must not be empty");
     assert!(out.files.is_empty());
     assertions::assert_request_invariants(&client.last_request());
@@ -152,6 +152,6 @@ fn no_redact_flag_skips_redaction() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
     // With no_redact=true, run() skips lx_redact — should still succeed.
-    let out = run(safe_root(), true, &config, &client).unwrap();
+    let (out, _warnings) = run(safe_root(), true, &config, &client).unwrap();
     assert!(!out.summary.is_empty());
 }

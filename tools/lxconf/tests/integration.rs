@@ -152,6 +152,7 @@ fn to_plain_formats_finding_with_hint() {
             hint: Some("Use a port number between 1 and 65535".to_string()),
         }],
         content: String::new(),
+        input_truncated: false,
     };
     let plain = out.to_plain(ConfigMode::Audit);
     assert!(plain.contains("[error]"));
@@ -169,6 +170,7 @@ fn to_plain_formats_finding_without_hint() {
             hint: None,
         }],
         content: String::new(),
+        input_truncated: false,
     };
     let plain = out.to_plain(ConfigMode::Audit);
     assert!(plain.contains("[info]"));
@@ -181,6 +183,7 @@ fn to_plain_empty_findings() {
     let out = Output {
         findings: vec![],
         content: String::new(),
+        input_truncated: false,
     };
     assert_eq!(out.to_plain(ConfigMode::Audit), "no issues found");
 }
@@ -190,6 +193,7 @@ fn to_plain_create_returns_content() {
     let out = Output {
         findings: vec![],
         content: "host = localhost\nport = 5432\n".to_string(),
+        input_truncated: false,
     };
     assert_eq!(
         out.to_plain(ConfigMode::Create),

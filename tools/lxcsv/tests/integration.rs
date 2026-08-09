@@ -97,6 +97,7 @@ fn to_plain_returns_answer_only() {
     let out = Output {
         answer: "The total revenue is 38550.".to_string(),
         used_rows: "10 of 10 rows sampled".to_string(),
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert_eq!(plain, "The total revenue is 38550.");

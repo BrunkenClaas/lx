@@ -162,14 +162,16 @@ fn main() {
         }
     } else {
         // Stdin / --file mode.
+        // Checked readers: search results are a claim about the whole input, and
+        // input truncation is a different failure from the sampling cap below.
         let content = if let Some(ref path) = cli.file {
             // --file given — read that file (no fsbound, user explicitly named it).
-            lx_core::io::read_file_limited(path, max_bytes).unwrap_or_else(|e| {
+            lx_core::io::read_file_limited_checked(path, max_bytes).unwrap_or_else(|e| {
                 print_error(&e, cli.json);
                 process::exit(e.exit_code());
             })
         } else {
-            lx_core::io::resolve_input(None, max_bytes).unwrap_or_else(|e| {
+            lx_core::io::resolve_input_checked(None, max_bytes).unwrap_or_else(|e| {
                 print_error(&e, cli.json);
                 process::exit(e.exit_code());
             })
@@ -206,7 +208,12 @@ fn main() {
 
         // Stdin is treated as anonymous "<stdin>" file.
         match run::run(&query, &[("<stdin>", &content)], &config, client.as_ref()) {
-            Ok(o) => o,
+            Ok(mut o) => {
+                // run() is pure and never sees the reader, so main.rs carries
+                // the input-truncation fact onto the result.
+                o.input_truncated = content.truncated;
+                o
+            }
             Err(e) => {
                 print_error(&e, cli.json);
                 process::exit(e.exit_code());
@@ -219,6 +226,15 @@ fn main() {
             "results are INCOMPLETE: input exceeded the search budget, so only a \
              sampled subset was searched — matching lines may be missing. Narrow \
              the input (e.g. exclude build/vendor directories) and re-run.",
+        );
+    }
+    // Distinct from `capped`: the bytes never reached the sampler at all, and
+    // the remedy is a bigger limit rather than a narrower search.
+    if output.input_truncated {
+        lx_core::output::warn(
+            "results are INCOMPLETE: the input was cut short by the byte limit \
+             before searching, so later content was never seen. Raise \
+             --max-input-bytes and re-run.",
         );
     }
 

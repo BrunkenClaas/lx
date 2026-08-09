@@ -15,6 +15,11 @@ pub struct Output {
     pub cause: String,
     pub fix: String,
     pub command: String,
+    /// True when the input was cut short by the byte limit, so this diagnosis
+    /// covers only part of the log. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {

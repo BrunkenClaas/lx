@@ -90,6 +90,7 @@ fn to_plain_formats_sections_correctly() {
                 content: vec!["John to finish dashboard".to_string()],
             },
         ],
+        input_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("## Decisions"));

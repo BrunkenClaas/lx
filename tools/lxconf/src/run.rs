@@ -42,6 +42,11 @@ pub struct Output {
     /// Create/edit mode: the generated or modified config content. Audit mode: empty.
     #[serde(default)]
     pub content: String,
+    /// True when the input was cut short by the byte limit, so this result
+    /// covers only part of the source. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {

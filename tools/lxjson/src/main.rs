@@ -99,14 +99,17 @@ fn main() {
         s
     } else {
         let max = cli.max_input_bytes.unwrap_or(config.limits.max_input_bytes);
-        let raw = lx_core::io::resolve_input(cli.file.as_deref(), max).unwrap_or_else(|e| {
-            print_error(&e, cli.json);
-            process::exit(e.exit_code());
-        });
+        let raw =
+            lx_core::io::resolve_input_checked(cli.file.as_deref(), max).unwrap_or_else(|e| {
+                print_error(&e, cli.json);
+                process::exit(e.exit_code());
+            });
 
-        // truncation = false: abort if the raw bytes hit the limit.
-        // resolve_input truncates silently; we detect it by checking byte length.
-        if raw.len() >= max {
+        // lxjson's contract is abort-on-oversize, not truncate: a partial
+        // document is not valid JSON, so there is nothing useful to send.
+        // This used to be inferred from `raw.len() >= max`, which also rejected
+        // input of *exactly* the limit even though nothing had been dropped.
+        if raw.truncated {
             let e = lx_core::error::LxError::BadUsage("input too large".to_string());
             print_error(&e, cli.json);
             if cli.json {
@@ -120,7 +123,7 @@ fn main() {
             process::exit(exit::BAD_USAGE);
         }
 
-        raw
+        raw.into_text()
     };
 
     if input.trim().is_empty() {

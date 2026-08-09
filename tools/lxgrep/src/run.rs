@@ -52,6 +52,12 @@ pub struct Output {
     /// were not sent to the LLM (set locally, never expected from the model).
     #[serde(default)]
     pub capped: bool,
+    /// True when the byte limit cut the input short *before* sampling — a
+    /// different failure from the sampling flag above, and a different remedy
+    /// (raise `--max-input-bytes` rather than narrow the query). Set locally
+    /// from the reader, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {
@@ -541,6 +547,8 @@ fn complete_with_blocks(
         return Ok(Output {
             matches: vec![],
             capped,
+            // Input truncation is an I/O fact main.rs knows and run() does not.
+            input_truncated: false,
         });
     }
 
@@ -690,6 +698,7 @@ mod tests {
                 snippet: "    Err(e) => eprintln!(\"error: {e}\"),".to_string(),
             }],
             capped: false,
+            input_truncated: false,
         };
         let plain = out.to_plain();
         assert_eq!(

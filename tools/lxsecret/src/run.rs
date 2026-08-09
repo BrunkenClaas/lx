@@ -32,6 +32,11 @@ pub struct Finding {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Output {
     pub findings: Vec<Finding>,
+    /// True when the input was cut short by the byte limit, so this result
+    /// covers only part of the source. Set locally from the reader — never
+    /// delegated to the LLM, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub input_truncated: bool,
 }
 
 impl Output {
@@ -1183,7 +1188,11 @@ fn run_inner(
     strict: bool,
 ) -> Result<Output, LxError> {
     if input.trim().is_empty() {
-        return Ok(Output { findings: vec![] });
+        return Ok(Output {
+            findings: vec![],
+            // Input truncation is an I/O fact main.rs knows and run() does not.
+            input_truncated: false,
+        });
     }
 
     let raw_matches = scan_text(input, source_name, strict);
@@ -1229,7 +1238,10 @@ fn run_inner(
         });
     }
 
-    Ok(Output { findings })
+    Ok(Output {
+        findings,
+        input_truncated: false,
+    })
 }
 
 // ── Directory scanning ────────────────────────────────────────────────────────
@@ -1258,6 +1270,7 @@ pub fn scan_directory(
 
     Ok(Output {
         findings: all_findings,
+        input_truncated: false,
     })
 }
 
