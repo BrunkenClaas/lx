@@ -10,6 +10,27 @@ use crate::exit::LxError;
 /// Default maximum stdin bytes read before truncation (512 KiB).
 pub const DEFAULT_MAX_INPUT_BYTES: usize = 512 * 1024;
 
+// ── Byte-safe truncation ──────────────────────────────────────────────────────
+
+/// Truncate `s` to at most `max_bytes`, snapping back to the nearest character
+/// boundary so the result is always valid UTF-8 and never ends mid-character.
+///
+/// Slicing a `&str` at a raw byte offset panics when that offset falls inside a
+/// multi-byte character, which is what any tool doing `&input[..MAX]` risks on
+/// non-ASCII input. Use this instead of a bare range slice for every input cap.
+pub fn truncate_at_char_boundary(s: &str, max_bytes: usize) -> &str {
+    if s.len() <= max_bytes {
+        return s;
+    }
+    // `is_char_boundary` is O(1) and a UTF-8 character is at most 4 bytes, so
+    // this steps back at most three times.
+    let mut end = max_bytes;
+    while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    &s[..end]
+}
+
 // ── Stdin reading ─────────────────────────────────────────────────────────────
 
 /// Read all of stdin up to `max_bytes`.
@@ -237,6 +258,35 @@ pub fn resolve_input(file: Option<&std::path::Path>, max_bytes: usize) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── truncate_at_char_boundary ──
+
+    #[test]
+    fn truncate_at_char_boundary_leaves_short_input_alone() {
+        assert_eq!(truncate_at_char_boundary("hello", 1024), "hello");
+        assert_eq!(truncate_at_char_boundary("hello", 5), "hello");
+    }
+
+    #[test]
+    fn truncate_at_char_boundary_snaps_back_off_a_split_character() {
+        // 'ä' is two bytes: cutting at 2 lands inside it. A bare `&s[..2]`
+        // panics here — this is the regression the helper exists to prevent.
+        assert_eq!(truncate_at_char_boundary("aä", 2), "a");
+        // A four-byte character cut anywhere inside it drops the whole char.
+        assert_eq!(truncate_at_char_boundary("🦀", 1), "");
+        assert_eq!(truncate_at_char_boundary("🦀", 3), "");
+        assert_eq!(truncate_at_char_boundary("🦀", 4), "🦀");
+    }
+
+    #[test]
+    fn truncate_at_char_boundary_never_panics_at_any_offset() {
+        let s = "aä🦀e\u{00e9}f";
+        for n in 0..=s.len() {
+            let t = truncate_at_char_boundary(s, n);
+            assert!(s.starts_with(t), "result must be a prefix of the input");
+            assert!(t.len() <= n, "result must not exceed the requested cap");
+        }
+    }
 
     // ── read_file ──
 

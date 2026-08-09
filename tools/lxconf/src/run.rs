@@ -85,7 +85,7 @@ impl Output {
 fn truncate_config(input: &str) -> (&str, Vec<String>) {
     if input.len() > MAX_CONFIG_BYTES {
         (
-            &input[..MAX_CONFIG_BYTES],
+            lx_core::io::truncate_at_char_boundary(input, MAX_CONFIG_BYTES),
             vec![format!("input truncated to {MAX_CONFIG_BYTES} bytes")],
         )
     } else {

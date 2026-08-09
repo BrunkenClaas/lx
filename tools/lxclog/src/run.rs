@@ -83,7 +83,7 @@ impl Output {
 fn truncate_log(input: &str) -> (&str, Vec<String>) {
     if input.len() > MAX_LOG_BYTES {
         (
-            &input[..MAX_LOG_BYTES],
+            lx_core::io::truncate_at_char_boundary(input, MAX_LOG_BYTES),
             vec![format!("git log truncated to {MAX_LOG_BYTES} bytes")],
         )
     } else {

@@ -126,7 +126,7 @@ pub fn run_no_redact(
 fn truncate_input(input: &str) -> (&str, Vec<String>) {
     if input.len() > MAX_INPUT_BYTES {
         (
-            &input[..MAX_INPUT_BYTES],
+            lx_core::io::truncate_at_char_boundary(input, MAX_INPUT_BYTES),
             vec![format!("input truncated to {MAX_INPUT_BYTES} bytes")],
         )
     } else {

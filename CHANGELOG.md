@@ -6,6 +6,18 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Fixed
+
+- **Tools no longer crash on oversized non-ASCII input.** Eight tools cap their
+  input before the LLM call (`lxclog`, `lxcommit`, `lxconf`, `lxdebug`,
+  `lxdiff`, `lxdigest`, `lxpr`, `lxsum`), and each cut the text at a raw byte
+  offset. When that offset fell inside a multi-byte character — an umlaut, an
+  accent, a CJK glyph, an emoji — the tool panicked instead of producing a
+  result. A 32 KB German log piped into `lxsum` was enough to trigger it. The
+  cap now snaps back to the nearest character boundary, so the text stays valid
+  UTF-8 and is at most three bytes shorter. Behaviour is otherwise unchanged;
+  input that previously worked produces the same output.
+
 ## [1.0.6] - 2026-08-04
 
 ### Fixed

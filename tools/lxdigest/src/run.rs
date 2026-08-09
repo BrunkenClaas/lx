@@ -173,7 +173,7 @@ pub fn run(
             "warning: directory listing truncated to {} bytes",
             MAX_LISTING_BYTES
         );
-        &raw_listing[..MAX_LISTING_BYTES]
+        lx_core::io::truncate_at_char_boundary(&raw_listing, MAX_LISTING_BYTES)
     } else {
         &raw_listing
     };
