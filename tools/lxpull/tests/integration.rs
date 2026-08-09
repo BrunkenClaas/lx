@@ -19,7 +19,7 @@ fn output_schema_is_valid() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
     let fields = sample_fields();
-    let out = run(sample_contacts(), &fields, &config, &client).unwrap();
+    let (out, _warnings) = run(sample_contacts(), &fields, &config, &client).unwrap();
     assert!(!out.records.is_empty(), "records must not be empty");
     for record in &out.records {
         assert!(
@@ -67,7 +67,7 @@ fn run_no_redact_produces_output() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
     let fields = sample_fields();
-    let out = run_no_redact(sample_contacts(), &fields, &config, &client).unwrap();
+    let (out, _warnings) = run_no_redact(sample_contacts(), &fields, &config, &client).unwrap();
     assert!(!out.records.is_empty());
 }
 
@@ -76,7 +76,7 @@ fn snapshot_plain_output() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
     let fields = sample_fields();
-    let out = run(sample_contacts(), &fields, &config, &client).unwrap();
+    let (out, _warnings) = run(sample_contacts(), &fields, &config, &client).unwrap();
     insta::assert_snapshot!(out.to_plain(&fields));
 }
 
@@ -85,7 +85,7 @@ fn snapshot_json_output() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
     let fields = sample_fields();
-    let out = run(sample_contacts(), &fields, &config, &client).unwrap();
+    let (out, _warnings) = run(sample_contacts(), &fields, &config, &client).unwrap();
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
 }
 
@@ -121,4 +121,21 @@ fn to_plain_aligns_columns() {
         lines[0].starts_with("name"),
         "header must start with 'name'"
     );
+}
+
+#[test]
+fn oversized_input_is_capped_before_the_llm_call() {
+    let client = MockLlmClient::returning(mock_response());
+    let huge = (0..20_000)
+        .map(|i| {
+            format!(
+                "Name{i} <n{i}@example.com>
+"
+            )
+        })
+        .collect::<String>();
+    let fields = vec!["name".to_string(), "email".to_string()];
+    let (_out, warnings) = run(&huge, &fields, &Config::default(), &client).unwrap();
+    assert!(warnings.iter().any(|w| w.contains("truncated")));
+    assert!(client.last_request().user.len() <= 64_000);
 }

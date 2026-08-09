@@ -8,6 +8,14 @@ const MAX_TOKENS: u32 = 512;
 /// Max bar width in characters for the ASCII chart.
 const BAR_WIDTH: usize = 20;
 
+/// Maximum input bytes sent to the model.
+///
+/// A chart is built from a list of numbers or `label,value` pairs; the data is
+/// parsed locally and only a summary reaches the model. 32 KB is far more rows
+/// than a readable ASCII chart can show, and keeps the request inside the
+/// model's context window (`llm.num_ctx`, 32k tokens by default).
+const MAX_INPUT_BYTES: usize = 32_000;
+
 /// Internal struct for the LLM response.
 #[derive(Debug, Deserialize)]
 struct LlmOutput {
@@ -177,16 +185,44 @@ pub fn render_bar_chart(points: &[DataPoint], llm_series: &[String]) -> String {
     lines.join("\n")
 }
 
+/// Truncate very large input to keep the request inside the model's context
+/// window, collecting a tier-2 warning (emitted by main.rs) if it fired.
+/// Pure — no I/O.
+fn truncate_input(input: &str) -> (&str, Vec<String>) {
+    if input.len() > MAX_INPUT_BYTES {
+        let cut = lx_core::io::truncate_at_char_boundary(input, MAX_INPUT_BYTES);
+        // Trim back to the last complete line. Unlike prose, a half row is not
+        // merely shorter — `label,42` cut to `lab` fails to parse and would
+        // abort the whole chart, so the cap must land on a record boundary.
+        let cut = match cut.rfind('\n') {
+            Some(i) => &cut[..=i],
+            None => cut,
+        };
+        (
+            cut,
+            vec![format!("input truncated to {MAX_INPUT_BYTES} bytes")],
+        )
+    } else {
+        (input, Vec::new())
+    }
+}
+
 /// Core logic for `lxgraph`.
 ///
 /// Parses numeric data locally, renders an ASCII chart locally, and calls
 /// the LLM only to suggest axis labels and chart type. Pure: no I/O, no exit.
-pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Output, LxError> {
+pub fn run(
+    input: &str,
+    config: &Config,
+    client: &dyn LlmClient,
+) -> Result<(Output, Vec<String>), LxError> {
     if input.trim().is_empty() {
         return Err(LxError::BadUsage(
             "no input provided; pipe numbers or label,value pairs into lxgraph".to_string(),
         ));
     }
+
+    let (input, warnings) = truncate_input(input);
 
     // Parse data locally — this never touches the network.
     let points = parse_input(input)?;
@@ -211,8 +247,11 @@ pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Outpu
     // Render chart locally using parsed data + LLM labels.
     let chart = render_bar_chart(&points, &llm_out.series);
 
-    Ok(Output {
-        chart,
-        series: llm_out.series,
-    })
+    Ok((
+        Output {
+            chart,
+            series: llm_out.series,
+        },
+        warnings,
+    ))
 }

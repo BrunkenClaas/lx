@@ -6,6 +6,15 @@ use serde::{Deserialize, Serialize};
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
 const MAX_TOKENS: u32 = 512;
 
+/// Maximum input bytes sent to the model.
+///
+/// Classification reads the document to pick one label; it does not need the
+/// whole of a very large one, and the request must stay inside the model's
+/// context window (`llm.num_ctx`, 32k tokens by default — roughly 128 KB of
+/// text). Without this the global `limits.max_input_bytes` would be sent
+/// verbatim, which already exceeds that window.
+const MAX_INPUT_BYTES: usize = 32_000;
+
 /// One label + its confidence score.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LabelScore {
@@ -27,12 +36,26 @@ pub struct Output {
 /// Core logic for lxclass.
 ///
 /// Pure function: no I/O, no process::exit. Testable with MockLlmClient.
+/// Truncate very large input to keep the request inside the model's context
+/// window, collecting a tier-2 warning (emitted by main.rs) if it fired.
+/// Pure — no I/O.
+fn truncate_input(input: &str) -> (&str, Vec<String>) {
+    if input.len() > MAX_INPUT_BYTES {
+        (
+            lx_core::io::truncate_at_char_boundary(input, MAX_INPUT_BYTES),
+            vec![format!("input truncated to {MAX_INPUT_BYTES} bytes")],
+        )
+    } else {
+        (input, Vec::new())
+    }
+}
+
 pub fn run(
     input: &str,
     labels: &[String],
     config: &Config,
     client: &dyn LlmClient,
-) -> Result<Output, LxError> {
+) -> Result<(Output, Vec<String>), LxError> {
     if input.trim().is_empty() {
         return Err(LxError::BadUsage("no input provided".to_string()));
     }
@@ -41,6 +64,8 @@ pub fn run(
             "--labels must specify at least one label".to_string(),
         ));
     }
+
+    let (input, warnings) = truncate_input(input);
 
     // Build the labels string for the {labels} placeholder.
     let labels_str = labels.join(", ");
@@ -73,5 +98,5 @@ pub fn run(
         )));
     }
 
-    Ok(output)
+    Ok((output, warnings))
 }

@@ -10,7 +10,7 @@ fn eval_extracts_contacts() {
 
     let input = include_str!("fixtures/contacts.txt");
     let fields = vec!["name".to_string(), "email".to_string()];
-    let out = run(input, &fields, &config, client.as_ref()).unwrap();
+    let (out, _warnings) = run(input, &fields, &config, client.as_ref()).unwrap();
 
     assert!(
         !out.records.is_empty(),
@@ -40,7 +40,7 @@ fn eval_extracts_invoices() {
         "amount".to_string(),
         "description".to_string(),
     ];
-    let out = run(input, &fields, &config, client.as_ref()).unwrap();
+    let (out, _warnings) = run(input, &fields, &config, client.as_ref()).unwrap();
 
     assert!(
         !out.records.is_empty(),

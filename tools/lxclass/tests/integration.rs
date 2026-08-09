@@ -26,7 +26,7 @@ fn mock_positive_response() -> &'static str {
 fn output_schema_is_valid() {
     let client = MockLlmClient::returning(mock_spam_response());
     let config = Config::default();
-    let out = run(
+    let (out, _warnings) = run(
         "Congratulations! You have won a FREE prize!",
         &labels_spam_ham(),
         &config,
@@ -74,7 +74,7 @@ fn invalid_label_in_response_returns_error() {
 fn label_must_be_from_provided_labels() {
     let client = MockLlmClient::returning(mock_spam_response());
     let config = Config::default();
-    let out = run(
+    let (out, _warnings) = run(
         "Congratulations! You have won a FREE prize!",
         &labels_spam_ham(),
         &config,
@@ -144,7 +144,7 @@ fn untrusted_instruction_in_system_prompt() {
 fn snapshot_plain_output() {
     let client = MockLlmClient::returning(mock_spam_response());
     let config = Config::default();
-    let out = run(
+    let (out, _warnings) = run(
         "Congratulations! You have won a FREE prize!",
         &labels_spam_ham(),
         &config,
@@ -159,7 +159,7 @@ fn snapshot_plain_output() {
 fn snapshot_json_output() {
     let client = MockLlmClient::returning(mock_spam_response());
     let config = Config::default();
-    let out = run(
+    let (out, _warnings) = run(
         "Congratulations! You have won a FREE prize!",
         &labels_spam_ham(),
         &config,
@@ -173,7 +173,7 @@ fn snapshot_json_output() {
 fn all_field_contains_all_provided_labels() {
     let client = MockLlmClient::returning(mock_positive_response());
     let config = Config::default();
-    let out = run("Great product!", &labels_sentiment(), &config, &client).unwrap();
+    let (out, _warnings) = run("Great product!", &labels_sentiment(), &config, &client).unwrap();
     assert_eq!(
         out.all.len(),
         labels_sentiment().len(),
@@ -207,4 +207,23 @@ fn label_score_equality() {
         confidence: 0.9,
     };
     assert_eq!(a, b);
+}
+
+#[test]
+fn oversized_input_is_capped_before_the_llm_call() {
+    // Without an inner cap the whole of `limits.max_input_bytes` went to the
+    // model verbatim — already several times the default context window.
+    let client = MockLlmClient::returning(mock_spam_response());
+    let config = Config::default();
+    let huge = "spam offer ".repeat(20_000); // ~220 KB
+    let (_out, warnings) = run(&huge, &labels_spam_ham(), &config, &client).unwrap();
+    assert!(
+        warnings.iter().any(|w| w.contains("truncated")),
+        "oversized input must report truncation"
+    );
+    let sent = client.last_request().user.len();
+    assert!(
+        sent <= 32_000,
+        "input must be capped before the LLM call; sent {sent} bytes"
+    );
 }

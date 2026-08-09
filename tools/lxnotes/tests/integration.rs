@@ -14,7 +14,7 @@ fn sample_notes() -> &'static str {
 fn output_schema_is_valid() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
-    let out = run(sample_notes(), &config, &client).unwrap();
+    let (out, _warnings) = run(sample_notes(), &config, &client).unwrap();
     assert!(!out.sections.is_empty(), "sections must not be empty");
     for section in &out.sections {
         assert!(!section.title.is_empty(), "section title must not be empty");
@@ -30,7 +30,7 @@ fn output_schema_is_valid() {
 fn snapshot_plain_output() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
-    let out = run(sample_notes(), &config, &client).unwrap();
+    let (out, _warnings) = run(sample_notes(), &config, &client).unwrap();
     insta::assert_snapshot!(out.to_plain());
 }
 
@@ -38,7 +38,7 @@ fn snapshot_plain_output() {
 fn snapshot_json_output() {
     let client = MockLlmClient::returning(mock_response());
     let config = Config::default();
-    let out = run(sample_notes(), &config, &client).unwrap();
+    let (out, _warnings) = run(sample_notes(), &config, &client).unwrap();
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
 }
 
@@ -97,4 +97,13 @@ fn to_plain_formats_sections_correctly() {
     assert!(plain.contains("- Deploy on Thursdays"));
     assert!(plain.contains("## Action Items"));
     assert!(plain.contains("- John to finish dashboard"));
+}
+
+#[test]
+fn oversized_input_is_capped_before_the_llm_call() {
+    let client = MockLlmClient::returning(mock_response());
+    let huge = "discussed the roadmap and agreed next steps. ".repeat(2_000); // ~90 KB
+    let (_out, warnings) = run(&huge, &Config::default(), &client).unwrap();
+    assert!(warnings.iter().any(|w| w.contains("truncated")));
+    assert!(client.last_request().user.len() <= 48_000);
 }

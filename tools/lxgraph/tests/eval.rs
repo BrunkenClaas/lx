@@ -10,7 +10,7 @@ fn eval_output_structure() {
 
     let input = "Jan,100\nFeb,150\nMar,130\nApr,200\n";
     let client = lx_llm::client_from_config(&config, false).expect("failed to build LLM client");
-    let out = run(input, &config, client.as_ref()).expect("run() must succeed");
+    let (out, _warnings) = run(input, &config, client.as_ref()).expect("run() must succeed");
 
     assert!(!out.chart.is_empty(), "chart must not be empty");
     assert!(out.chart.contains('|'), "chart must contain bar separator");
@@ -29,7 +29,8 @@ fn eval_plain_numbers_input() {
 
     let input = "42\n17\n88\n35\n60\n";
     let client = lx_llm::client_from_config(&config, false).expect("failed to build LLM client");
-    let out = run(input, &config, client.as_ref()).expect("run() must succeed for plain numbers");
+    let (out, _warnings) =
+        run(input, &config, client.as_ref()).expect("run() must succeed for plain numbers");
 
     assert!(!out.chart.is_empty(), "chart must not be empty");
     // 5 input values should produce 5 chart lines

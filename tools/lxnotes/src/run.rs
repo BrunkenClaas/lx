@@ -9,6 +9,13 @@ pub const ACTIONS_SYSTEM_TEMPLATE: &str = include_str!("../prompts/actions_syste
 // long transcript exceeded 1024 and truncated. 2048 covers an hour of notes.
 const MAX_TOKENS: u32 = 2048;
 
+/// Maximum input bytes sent to the model.
+///
+/// Notes are restructured, not summarised away, so the reply scales with the
+/// input and both must fit one context window (`llm.num_ctx`, 32k tokens by
+/// default). 48 KB is a long meeting transcript; beyond that, split the notes.
+const MAX_INPUT_BYTES: usize = 48_000;
+
 /// A single structured section extracted from meeting notes.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Section {
@@ -88,6 +95,20 @@ impl ActionsOutput {
     }
 }
 
+/// Truncate very large input to keep the request inside the model's context
+/// window, collecting a tier-2 warning (emitted by main.rs) if it fired.
+/// Pure — no I/O.
+fn truncate_input(input: &str) -> (&str, Vec<String>) {
+    if input.len() > MAX_INPUT_BYTES {
+        (
+            lx_core::io::truncate_at_char_boundary(input, MAX_INPUT_BYTES),
+            vec![format!("input truncated to {MAX_INPUT_BYTES} bytes")],
+        )
+    } else {
+        (input, Vec::new())
+    }
+}
+
 /// Core logic for `lxnotes --actions` — extracts action items from notes.
 ///
 /// `input` must already be redacted before calling this function.
@@ -95,12 +116,14 @@ pub fn run_actions(
     input: &str,
     config: &Config,
     client: &dyn LlmClient,
-) -> Result<ActionsOutput, LxError> {
+) -> Result<(ActionsOutput, Vec<String>), LxError> {
     if input.trim().is_empty() {
         return Err(LxError::BadUsage(
             "no meeting notes provided; pipe raw notes into lxnotes".to_string(),
         ));
     }
+
+    let (input, warnings) = truncate_input(input);
 
     let system = inject_lang(ACTIONS_SYSTEM_TEMPLATE, &config.output.lang);
 
@@ -116,19 +139,25 @@ pub fn run_actions(
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    parse_response::<ActionsOutput>(&resp.content)
+    Ok((parse_response::<ActionsOutput>(&resp.content)?, warnings))
 }
 
 /// Core logic for lxnotes — structures raw meeting notes into sections.
 ///
 /// `input` must already be redacted before calling this function.
 /// Pure function: no I/O, no process::exit. Testable with MockLlmClient.
-pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Output, LxError> {
+pub fn run(
+    input: &str,
+    config: &Config,
+    client: &dyn LlmClient,
+) -> Result<(Output, Vec<String>), LxError> {
     if input.trim().is_empty() {
         return Err(LxError::BadUsage(
             "no meeting notes provided; pipe raw notes into lxnotes".to_string(),
         ));
     }
+
+    let (input, warnings) = truncate_input(input);
 
     let system = inject_lang(SYSTEM_TEMPLATE, &config.output.lang);
 
@@ -152,5 +181,5 @@ pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Outpu
         ));
     }
 
-    Ok(out)
+    Ok((out, warnings))
 }

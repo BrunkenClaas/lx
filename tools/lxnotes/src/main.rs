@@ -167,7 +167,11 @@ fn main() {
 
     if cli.actions {
         match run::run_actions(&input, &config, client.as_ref()) {
-            Ok(mut output) => {
+            Ok((mut output, warnings)) => {
+                // Tier-2 warnings (e.g. input truncation): shown unless --quiet.
+                for w in &warnings {
+                    lx_core::output::warn(w);
+                }
                 // run() is pure and never sees the reader; main.rs carries the fact.
                 output.input_truncated = raw_input.truncated;
                 if cli.json {
@@ -184,7 +188,11 @@ fn main() {
         }
     } else {
         match run::run(&input, &config, client.as_ref()) {
-            Ok(mut output) => {
+            Ok((mut output, warnings)) => {
+                // Tier-2 warnings (e.g. input truncation): shown unless --quiet.
+                for w in &warnings {
+                    lx_core::output::warn(w);
+                }
                 // run() is pure and never sees the reader; main.rs carries the fact.
                 output.input_truncated = raw_input.truncated;
                 if cli.json {

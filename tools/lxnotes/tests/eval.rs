@@ -8,7 +8,7 @@ fn eval_output_structure() {
     let config = Config::load().unwrap();
     let client = client_from_config(&config, false).unwrap();
     let notes = include_str!("fixtures/meeting_notes.txt");
-    let out = run(notes, &config, client.as_ref()).unwrap();
+    let (out, _warnings) = run(notes, &config, client.as_ref()).unwrap();
 
     assert!(!out.sections.is_empty(), "must return at least one section");
     for section in &out.sections {

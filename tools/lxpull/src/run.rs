@@ -8,6 +8,15 @@ use std::collections::BTreeMap;
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
 const MAX_TOKENS: u32 = 1024;
 
+/// Maximum input bytes sent to the model.
+///
+/// Extraction is not sampled — every record the user asked for must be visible,
+/// so the input goes to the model whole. That makes an explicit ceiling the only
+/// thing bounding the request: 64 KB fits the default context window
+/// (`llm.num_ctx`, 32k tokens) with room for the returned records. Larger
+/// corpora should be extracted in chunks.
+const MAX_INPUT_BYTES: usize = 64_000;
+
 /// Maximum number of records returned to the user. lxpull's output scales with
 /// the number of entities in the input, which is unbounded; without a cap a
 /// large document could produce a JSON response that overflows `MAX_TOKENS` and
@@ -81,6 +90,20 @@ impl Output {
     }
 }
 
+/// Truncate very large input to keep the request inside the model's context
+/// window, collecting a tier-2 warning (emitted by main.rs) if it fired.
+/// Pure — no I/O.
+fn truncate_input(input: &str) -> (&str, Vec<String>) {
+    if input.len() > MAX_INPUT_BYTES {
+        (
+            lx_core::io::truncate_at_char_boundary(input, MAX_INPUT_BYTES),
+            vec![format!("input truncated to {MAX_INPUT_BYTES} bytes")],
+        )
+    } else {
+        (input, Vec::new())
+    }
+}
+
 /// Core logic for lxpull — with mandatory redaction (SEC: redact, untrusted).
 ///
 /// Redacts the input BEFORE it reaches the LLM. No exceptions.
@@ -89,12 +112,14 @@ pub fn run(
     fields: &[String],
     config: &Config,
     client: &dyn LlmClient,
-) -> Result<Output, LxError> {
+) -> Result<(Output, Vec<String>), LxError> {
     if input.trim().is_empty() {
         return Err(LxError::BadUsage(
             "no input provided; pipe text into lxpull or use --file".to_string(),
         ));
     }
+
+    let (input, warnings) = truncate_input(input);
     if fields.is_empty() {
         return Err(LxError::BadUsage(
             "no fields specified; use --fields name,email,...".to_string(),
@@ -106,7 +131,7 @@ pub fn run(
     let redacted = redact(input, level)
         .map_err(|e| LxError::SecurityAbort(format!("redaction failed: {e}")))?;
 
-    send_to_llm(&redacted, fields, config, client)
+    Ok((send_to_llm(&redacted, fields, config, client)?, warnings))
 }
 
 /// Variant used when `--no-redact` is passed by the user.
@@ -115,7 +140,7 @@ pub fn run_no_redact(
     fields: &[String],
     config: &Config,
     client: &dyn LlmClient,
-) -> Result<Output, LxError> {
+) -> Result<(Output, Vec<String>), LxError> {
     if input.trim().is_empty() {
         return Err(LxError::BadUsage(
             "no input provided; pipe text into lxpull or use --file".to_string(),
@@ -127,7 +152,9 @@ pub fn run_no_redact(
         ));
     }
 
-    send_to_llm(input, fields, config, client)
+    let (input, warnings) = truncate_input(input);
+
+    Ok((send_to_llm(input, fields, config, client)?, warnings))
 }
 
 /// Build and send the LLM request, parse and validate the response.

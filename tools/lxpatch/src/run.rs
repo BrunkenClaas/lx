@@ -8,6 +8,15 @@ use serde::{Deserialize, Serialize};
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
 const MAX_TOKENS: u32 = 1024;
 
+/// Maximum file-content bytes sent to the model.
+///
+/// The model must see the file to produce a diff that applies cleanly, so this
+/// is more generous than a summarising tool needs — but it still has to fit the
+/// context window (`llm.num_ctx`, 32k tokens by default) alongside the returned
+/// patch. A truncated file yields a patch for the part that was sent, so the
+/// warning matters here.
+const MAX_INPUT_BYTES: usize = 48_000;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Output {
     pub diff: String,
@@ -22,12 +31,26 @@ impl Output {
     }
 }
 
+/// Truncate very large input to keep the request inside the model's context
+/// window, collecting a tier-2 warning (emitted by main.rs) if it fired.
+/// Pure — no I/O.
+fn truncate_input(input: &str) -> (&str, Vec<String>) {
+    if input.len() > MAX_INPUT_BYTES {
+        (
+            lx_core::io::truncate_at_char_boundary(input, MAX_INPUT_BYTES),
+            vec![format!("input truncated to {MAX_INPUT_BYTES} bytes")],
+        )
+    } else {
+        (input, Vec::new())
+    }
+}
+
 pub fn run(
     file_content: &str,
     description: &str,
     config: &Config,
     client: &dyn LlmClient,
-) -> Result<Output, LxError> {
+) -> Result<(Output, Vec<String>), LxError> {
     if description.trim().is_empty() {
         return Err(LxError::BadUsage(
             "no change description provided".to_string(),
@@ -38,6 +61,8 @@ pub fn run(
             "no file content provided on stdin".to_string(),
         ));
     }
+
+    let (file_content, warnings) = truncate_input(file_content);
 
     let user_msg = format!("[change: {}]\n---\n{}", description.trim(), file_content);
 
@@ -63,7 +88,7 @@ pub fn run(
         out.dangerous = true;
     }
 
-    Ok(out)
+    Ok((out, warnings))
 }
 
 fn is_dangerous(diff: &str) -> bool {
