@@ -6,8 +6,13 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-09
+
 ### Changed
 
+- **Suite label moved to `2026-08`.** `--version` now reports
+  `lxsum 1.1.0 (lx-coreutils 2026-08, …)`. The label marks the suite generation
+  and moves on a minor release, not with the calendar.
 - **`limits.max_input_bytes` raised from 512 KiB to 2 MiB.** The old default cut
   a mid-size repository's file listing in half: `find . | lxgrep "…"` on this
   repo read 512 KiB of a 1.4 MB listing, so nothing past the first third could

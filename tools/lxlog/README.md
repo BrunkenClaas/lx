@@ -44,7 +44,8 @@ $ lxlog --file app.log --json
       "message": "Memory usage at 94% — approaching critical threshold"
     }
   ],
-  "summary": "Critical resource issue: repeated connection pool exhaustion combined with high memory usage suggests the database has been unreachable since 14:23."
+  "summary": "Critical resource issue: repeated connection pool exhaustion combined with high memory usage suggests the database has been unreachable since 14:23.",
+  "input_truncated": false
 }
 ```
 

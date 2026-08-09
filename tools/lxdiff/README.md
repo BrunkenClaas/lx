@@ -32,7 +32,8 @@ JSON (`--json`):
     "A max_entries field is added to the Cache struct to limit its size.",
     "A with_capacity constructor allows callers to set the entry limit.",
     "The insert method evicts the oldest entry when the cache is full."
-  ]
+  ],
+  "input_truncated": false
 }
 ```
 

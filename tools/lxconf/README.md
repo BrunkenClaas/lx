@@ -48,7 +48,8 @@ JSON mode (`--json`):
       "message": "port value 99999 is outside the valid range 1-65535",
       "hint": "Use a port number between 1 and 65535"
     }
-  ]
+  ],
+  "input_truncated": false
 }
 ```
 

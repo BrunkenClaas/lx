@@ -1,6 +1,6 @@
 # LX Coreutils — Design Document
 
-**Status:** Living document · **Last reviewed:** 2026-08-03 · **Audience:** maintainers and contributors
+**Status:** Living document · **Last reviewed:** 2026-08-09 · **Audience:** maintainers and contributors
 
 LX Coreutils is a collection of **72 small, fast, LLM-powered command-line tools**
 for Linux and Windows. Each tool does exactly one thing, starts in single-digit
@@ -223,6 +223,18 @@ pub fn run(
 `main.rs` then decides which fields of `Output` go to stdout (the result) and which
 go to stderr (the explanation). `run()` never makes that decision and never prints.
 
+**Tools that can truncate their own input return warnings alongside the output**
+(16 of them today — every tool with a `MAX_INPUT_BYTES`, see §7.5.1):
+
+```rust
+) -> Result<(Output, Vec<String>), LxError> {
+```
+
+`main.rs` emits each string with `lx_core::output::warn` so the message respects
+`--quiet` and lands in tier 2 (§9.2). This channel exists precisely so `run()`
+stays pure: a warning printed from inside `run()` bypasses `--quiet` and makes
+the function untestable without capturing stderr.
+
 ### 3.5 Data flow
 
 ```
@@ -295,9 +307,9 @@ The platform-neutral foundation. Modules:
   plain readers, where the warning is the right and sufficient treatment.
   The plain readers delegate to the checked ones, so there is a single
   implementation and the two cannot drift.
-- **`version`** — `LX_SUITE_LABEL` (currently `"2026-07"`) and
+- **`version`** — `LX_SUITE_LABEL` (currently `"2026-08"`) and
   `build_version_string(binary, version)` producing
-  `lxexplain 1.0.0 (lx-coreutils 2026-07, <target-triple>)`.
+  `lxexplain 1.1.0 (lx-coreutils 2026-08, <target-triple>)`.
 - **`platform`** — the **one** place allowed to use `unsafe` and
   `#[cfg(target_os)]`. Provides `config_dir()` (XDG on Linux, `%APPDATA%` on
   Windows), `is_tty(Fd)`, `os() -> &'static str` (returns `"linux"`, `"windows"`,
@@ -612,7 +624,9 @@ never `-dev` — they tell a user what to install.
 
 **Suite label** (`LX_SUITE_LABEL`, `YYYY-MM`) is independent of the crate version and
 marks the suite *generation*, not the release. Bump it only on a minor/major release
-(a new suite epoch), **not** on patches — it stayed `2026-07` across all of 1.0.x.
+(a new suite epoch), **not** on patches — it stayed `2026-07` across all of 1.0.x and
+moved to `2026-08` with 1.1.0. The trigger is the minor bump, never the calendar: a
+patch released in a new month leaves the label alone.
 
 ### 6.3 Supported platforms
 
@@ -1189,7 +1203,7 @@ replacements in the `--dry-run` path in `main.rs`.
 ### 9.4 `--version` format
 
 ```
-lxcommit 1.0.0 (lx-coreutils 2026-07, x86_64-unknown-linux-musl)
+lxcommit 1.1.0 (lx-coreutils 2026-08, x86_64-unknown-linux-musl)
 ```
 
 Built from `env!("CARGO_PKG_VERSION")` and `lx_core::version::LX_SUITE_LABEL`.
@@ -1707,7 +1721,10 @@ A new tool follows the same shape as every existing one. The rhythm:
    Result<Output, LxError>`: local pre-processing in Rust, build the request
    (`temperature = 0.0`, tight `MAX_TOKENS`, static system prompt), call
    `client.complete()`, validate with `lx_llm::schema`, return a typed `Output`. No
-   I/O, no `process::exit`. Implement the security flags exactly as §10 requires
+   I/O, no `process::exit`. **If the tool embeds its input in the request it needs
+   its own `MAX_INPUT_BYTES` (§7.5.1)**, which makes the return type
+   `Result<(Output, Vec<String>), LxError>` — the warnings channel, never an
+   `eprintln!` from inside `run()`. Implement the security flags exactly as §10 requires
    (`redact` → `lx_redact::redact` first, fail → exit 5; `nocmd` → never execute,
    local danger detection + marking; `untrusted` → ignore-instructions in the prompt;
    `fsbound` → path-boundary check via `read_file(.., Some(root))`). Expose
@@ -1788,6 +1805,8 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-09 | Released 1.1.0 (all crates 1.0.7-dev→1.1.0). **Suite label `2026-07`→`2026-08`** — the first bump since 1.0.0, triggered by the minor release rather than the calendar (§6.2 now states that distinction). | BrunkenClaas |
+| 2026-08-09 | Verification pass against the code ("Last reviewed" bumped): corrected the `run()` contract in §3.4 and §14, which still showed `Result<Output, LxError>` for all tools although 16 now return `(Output, Vec<String>)`; confirmed §4's `io` inventory, the §8.2 config table, the §9.2 tier examples, the 72-tools-plus-`lx` count, and every cited `lx_*::` symbol. Also brought 11 per-tool READMEs' JSON examples up to date with `input_truncated`, and `lxcsv`'s stale `used_rows` sample. | BrunkenClaas |
 | 2026-08-09 | `limits.max_input_bytes` default 512 KiB → 2 MiB (§8.2 table, `config.example.toml`, README). §7.5.1 now states the read-vs-send budget distinction explicitly, with the measurement showing a 54× larger input grows the prompt by 8%: the raise costs memory and scan time, not tokens. | BrunkenClaas |
 | 2026-08-09 | New §7.5.1: every tool that embeds its input in the request declares its own `MAX_INPUT_BYTES`, because `limits.max_input_bytes` is a read budget whose default already exceeds the default context window ~4×; sizing guidance per tool shape; the decision rests on what reaches `Request.user` (`lxredact`/`lxsecret` send only findings and need no cap); record-oriented input must be trimmed to the last complete line. | BrunkenClaas |
 | 2026-08-09 | §7.5: named `truncate(budget)` on an ordered candidate list as the standard way the whole-input rule breaks, and required even thinning plus a reserved coverage share at *every* budget enforcement point (`lxgrep` had the bug in all three of its own); documented `DEFAULT_MAX_TOTAL_INPUT_BYTES` as the aggregate ceiling directory-walking tools need on top of the per-file limit, and why exhausting it must error rather than stop quietly. | BrunkenClaas |

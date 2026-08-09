@@ -41,7 +41,8 @@ JSON output (`--json`):
 {
   "cause": "The Node.js module 'express' is not installed in the project's node_modules directory.",
   "fix": "Install the missing dependency using npm or yarn.",
-  "command": "npm install express"
+  "command": "npm install express",
+  "input_truncated": false
 }
 ```
 

@@ -26,7 +26,8 @@ EMEA with $4.2M total
 $ cat sales.csv | lxcsv "which region has the highest total?" --json
 {
   "answer": "EMEA with $4.2M total",
-  "used_rows": "50 rows sampled"
+  "used_rows": "50 of 20000 rows sampled evenly across the file (aggregates cover all rows)",
+  "input_truncated": false
 }
 ```
 

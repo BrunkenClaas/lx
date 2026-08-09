@@ -105,7 +105,8 @@ JSON mode (`--json`):
       "masked": "AKIA****MPLE",
       "assessment": "real"
     }
-  ]
+  ],
+  "input_truncated": false
 }
 ```
 

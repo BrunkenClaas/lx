@@ -2,7 +2,7 @@
 
 /// Suite-level release label embedded in `--version` output.
 /// Update this when cutting a coordinated suite release.
-pub const LX_SUITE_LABEL: &str = "2026-07";
+pub const LX_SUITE_LABEL: &str = "2026-08";
 
 /// Build the canonical `--version` string for any lx tool.
 ///
