@@ -100,7 +100,7 @@ pub struct LimitsConfig {
 impl Default for LimitsConfig {
     fn default() -> Self {
         LimitsConfig {
-            max_input_bytes: 524_288, // 512 KiB
+            max_input_bytes: 2_097_152, // 2 MiB
             // Global ceiling: min(per-tool MAX_TOKENS, this) wins. Set at the
             // suite's highest per-tool budget (4096) so it never caps a tool by
             // default; lower it to reduce every tool's output globally.
@@ -554,7 +554,7 @@ mod tests {
         assert_eq!(cfg.llm.max_retries, 3);
         assert_eq!(cfg.llm.num_ctx, 32_768);
         assert!(!cfg.llm.reasoning, "reasoning must default to off");
-        assert_eq!(cfg.limits.max_input_bytes, 524_288);
+        assert_eq!(cfg.limits.max_input_bytes, 2_097_152);
         assert_eq!(cfg.limits.max_output_tokens, 4096);
         assert_eq!(cfg.redact.level, "standard");
         assert_eq!(cfg.output.lang, "auto");

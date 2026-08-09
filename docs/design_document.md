@@ -1008,10 +1008,20 @@ sample — it extracts from whatever it is given and caps the model's *output*.
 
 #### 7.5.1 Every tool that sends input to the model needs its own ceiling
 
-`limits.max_input_bytes` is a **read** budget, not a send budget. Its default
-(512 KiB) is roughly four times the default context window (`llm.num_ctx`, 32k
-tokens ≈ 128 KB of text), so a tool that passes what it read straight into the
-request is already over-sending: local providers silently cut the request short,
+`limits.max_input_bytes` is a **read** budget, not a send budget — the two are
+sized against different things and must not be conflated.
+
+The read budget bounds how much a tool pulls into memory, so the sampler can
+choose from the whole input rather than its first slice. It is sized against
+memory and local scan time, and at 2 MiB the peak stays well under ~50 MB.
+Raising it does **not** make requests larger: on `lxgrep`, growing the input 54×
+(33 KB → 1.8 MB) grows the prompt by 8% (14.0 KB → 15.1 KB), because the
+candidate budget is what bounds the prompt.
+
+The send budget is per tool and sized against the model's context window
+(`llm.num_ctx`, 32k tokens ≈ 128 KB of text). A tool that passes what it read
+straight into the request has no send budget at all and is already over-sending
+at any read limit above ~128 KB: local providers silently cut the request short,
 hosted ones bill for all of it.
 
 **A tool that embeds its input in the request must therefore declare its own
@@ -1070,7 +1080,7 @@ limits) before use.
 | `llm` | `num_ctx` | `32768` | `LX_NUM_CTX` | Context window sent as `options.num_ctx` on **Ollama's** native `/api/chat` endpoint. Not sent to any other provider (LM Studio takes context from its GUI; hosted providers manage it themselves). Must be > 0. |
 | `llm` | `reasoning` | `false` | `LX_REASONING` | Allow the model to reason/think. Default `false`: lx sends the provider's disable-reasoning field only where safe (OpenRouter/Gemini/DeepSeek/Ollama); Anthropic/Groq/others sent nothing (best-effort — never breaks a request). See §7.3. |
 | `llm` | `api_key` | *(none)* | `LX_API_KEY` | **Never** from config files; env / credential store only. |
-| `limits` | `max_input_bytes` | `524288` (512 KiB) | `LX_MAX_INPUT_BYTES` | Truncate-with-warning, not abort. |
+| `limits` | `max_input_bytes` | `2097152` (2 MiB) | `LX_MAX_INPUT_BYTES` | Truncate-with-warning, not abort. |
 | `limits` | `max_output_tokens` | `4096` | `LX_MAX_OUTPUT_TOKENS` | Global output-token ceiling; each request uses `min(per-tool budget, this)` — smaller wins. Default equals the largest per-tool budget, so it never caps a tool by default. |
 | `redact` | `level` | `"standard"` | `LX_REDACT_LEVEL` | `standard` or `strict`; `off` rejected here (use `--no-redact`). |
 | `output` | `lang` | `"auto"` | `LX_LANG` | BCP-47 tag or `auto` (detect from locale). |
@@ -1778,6 +1788,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-09 | `limits.max_input_bytes` default 512 KiB → 2 MiB (§8.2 table, `config.example.toml`, README). §7.5.1 now states the read-vs-send budget distinction explicitly, with the measurement showing a 54× larger input grows the prompt by 8%: the raise costs memory and scan time, not tokens. | BrunkenClaas |
 | 2026-08-09 | New §7.5.1: every tool that embeds its input in the request declares its own `MAX_INPUT_BYTES`, because `limits.max_input_bytes` is a read budget whose default already exceeds the default context window ~4×; sizing guidance per tool shape; the decision rests on what reaches `Request.user` (`lxredact`/`lxsecret` send only findings and need no cap); record-oriented input must be trimmed to the last complete line. | BrunkenClaas |
 | 2026-08-09 | §7.5: named `truncate(budget)` on an ordered candidate list as the standard way the whole-input rule breaks, and required even thinning plus a reserved coverage share at *every* budget enforcement point (`lxgrep` had the bug in all three of its own); documented `DEFAULT_MAX_TOTAL_INPUT_BYTES` as the aggregate ceiling directory-walking tools need on top of the per-file limit, and why exhausting it must error rather than stop quietly. | BrunkenClaas |
 | 2026-08-09 | §7.5: separated sampling (`capped`) from input truncation (`input_truncated`) as distinct facts with distinct remedies; stated that the incomplete-results warning is tier-2 and never narration; corrected the sampler list (`lxdupe` does not exist; `lxpull` extracts and caps output rather than sampling; `lxfind` reads an intent string, not searched content). | BrunkenClaas |

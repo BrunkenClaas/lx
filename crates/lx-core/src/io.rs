@@ -7,8 +7,10 @@ use crate::exit::LxError;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-/// Default maximum stdin bytes read before truncation (512 KiB).
-pub const DEFAULT_MAX_INPUT_BYTES: usize = 512 * 1024;
+/// Default maximum stdin bytes read before truncation (2 MiB).
+///
+/// Kept in step with `lx_config::LimitsConfig::default()`.
+pub const DEFAULT_MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
 
 /// Aggregate ceiling for tools that read many files into memory at once.
 ///

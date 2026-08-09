@@ -6,6 +6,22 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Changed
+
+- **`limits.max_input_bytes` raised from 512 KiB to 2 MiB.** The old default cut
+  a mid-size repository's file listing in half: `find . | lxgrep "…"` on this
+  repo read 512 KiB of a 1.4 MB listing, so nothing past the first third could
+  match however good the sampling was. It now reads the whole thing.
+
+  This is a **read** budget, not a send budget, so the raise does not make
+  requests larger or more expensive. Tools that sample keep their fixed
+  candidate budgets — a larger read just lets the sampler choose from the whole
+  input instead of its first slice. Tools that send their input keep their own
+  per-tool ceilings, which bind long before this limit does. Measured on
+  `lxgrep`: growing the input 54× (33 KB → 1.8 MB) grows the prompt by 8%
+  (14.0 KB → 15.1 KB). The cost of the raise is memory and local scan time, not
+  tokens.
+
 ### Added
 
 - **Twelve more tools report truncated input in `--json`.** `lxclog`,
@@ -40,6 +56,11 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
   last complete line: half a CSV row does not parse and would have failed the
   whole conversion.
 
+- **`lxcsv` now samples rows across the whole file, not just the first 50.** A
+  question about a date-sorted export was answered from its oldest rows only,
+  and the `used_rows` note ("50 of 20000 rows sampled") read as if the sample
+  were representative. Rows are now spread evenly across the file and the note
+  says so; the computed aggregates always covered every row and still do.
 - **`lxgrep` now samples the whole input instead of only its head.** When a file
   produced more candidates than the budget allowed, the sampler sorted them by
   line number and truncated — which keeps the *lowest* line numbers, so the
