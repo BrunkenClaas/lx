@@ -79,7 +79,7 @@ pub fn run_no_redact(
 fn truncate_diff(diff: &str) -> (&str, Vec<String>) {
     if diff.len() > MAX_DIFF_BYTES {
         (
-            &diff[..MAX_DIFF_BYTES],
+            lx_core::io::truncate_at_char_boundary(diff, MAX_DIFF_BYTES),
             vec![format!(
                 "diff truncated to {} bytes (original: {} bytes)",
                 MAX_DIFF_BYTES,

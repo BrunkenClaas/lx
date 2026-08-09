@@ -101,3 +101,23 @@ fn to_plain_includes_run_line_when_command_present() {
     let plain = out.to_plain();
     assert!(plain.contains("Run:    npm install"));
 }
+
+#[test]
+fn oversized_multibyte_input_does_not_panic() {
+    // The inner cap used to slice at a raw byte offset, which panics when the
+    // offset falls inside a multi-byte character. "ä" is two bytes, so a bare
+    // run of them puts every character on an even offset and an even cap would
+    // land cleanly between two of them. The single-byte "x" prefix shifts every
+    // "ä" onto an odd offset, so the cap is guaranteed to fall mid-character.
+    let input = format!("x{}", "ä".repeat(MAX_INPUT_BYTES_FOR_TEST / 2 + 100));
+    let client = MockLlmClient::returning(mock_response());
+    let config = Config::default();
+    let (_out, warnings) = run(&input, &config, &client).unwrap();
+    assert!(
+        warnings.iter().any(|w| w.contains("truncated")),
+        "oversized input must report truncation"
+    );
+}
+
+/// Mirrors `run::MAX_INPUT_BYTES`, which is private.
+const MAX_INPUT_BYTES_FOR_TEST: usize = 32000;
