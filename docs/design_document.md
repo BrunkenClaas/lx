@@ -954,6 +954,20 @@ A sampling budget becomes a relevance gate whenever it discards candidates
 1. **Sample across the whole input, not just its head.** Keyword-matching lines
    first (prioritisation, not filtering), then even coverage of the remainder, so
    a relevant item late in a long input is still reachable.
+
+   **`truncate(budget)` on an ordered candidate list is the standard way this
+   breaks.** Candidates are built in line order, so cutting to a prefix keeps the
+   lowest line numbers and the model never sees past the head — a positional
+   relevance gate wearing a volume-budget costume. Thin the list *evenly*
+   instead (`downsample_evenly` in `lxgrep`), keeping the first and last entries
+   and equalising the gaps. Every place that enforces a budget needs this, not
+   just the obvious one: `lxgrep` had the same bug three times over — per-file
+   line sampling, per-file block sampling, and the global cap across files.
+
+   A budget must also **reserve a share for coverage** rather than letting
+   keyword hits consume all of it. If hits alone can fill the budget, the keyword
+   set decides what the model may consider at all, which is the same violation by
+   another route. `lxgrep` reserves one quarter.
 2. **Match the unit of sampling to the shape of the input.** Context lines around
    a hit make a code or log excerpt interpretable, but on a record list (`find`
    output, an ID list) every line is self-contained and its neighbours are
@@ -978,6 +992,14 @@ the `_checked` readers, §4) means the byte limit cut the input short *before*
 the sampler ever saw it. The remedies differ — narrow the query versus raise
 `--max-input-bytes` — so `lxgrep`, `lxlog` and `lxpull` carry both and warn
 about each distinctly. Merging them would tell the user to do the wrong thing.
+
+**A per-source byte limit is not a memory bound.** `limits.max_input_bytes`
+applies to each file, so a tool that walks a directory multiplies it by the file
+count. Such tools budget against `DEFAULT_MAX_TOTAL_INPUT_BYTES` (64 MiB, §4) in
+addition to the per-file limit, and **error** when it is exhausted rather than
+stopping quietly — a walk proceeds in sorted order, so silently running out of
+budget would search the alphabetically-first files and skip the rest, which is
+the same positional gate in another dimension.
 
 Note that a tool reading *an intent string* from stdin is not sampling input:
 `lxfind` takes a description and searches the filesystem, so truncating its
@@ -1723,6 +1745,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-09 | §7.5: named `truncate(budget)` on an ordered candidate list as the standard way the whole-input rule breaks, and required even thinning plus a reserved coverage share at *every* budget enforcement point (`lxgrep` had the bug in all three of its own); documented `DEFAULT_MAX_TOTAL_INPUT_BYTES` as the aggregate ceiling directory-walking tools need on top of the per-file limit, and why exhausting it must error rather than stop quietly. | BrunkenClaas |
 | 2026-08-09 | §7.5: separated sampling (`capped`) from input truncation (`input_truncated`) as distinct facts with distinct remedies; stated that the incomplete-results warning is tier-2 and never narration; corrected the sampler list (`lxdupe` does not exist; `lxpull` extracts and caps output rather than sampling; `lxfind` reads an intent string, not searched content). | BrunkenClaas |
 | 2026-08-09 | Input readers gained `_checked` twins returning `Input { text, truncated }`, so a tool whose result is a claim about the whole input can report truncation in `--json` (§4 `io`); documented `truncate_at_char_boundary` as the only correct way to apply a byte cap to a `&str`; corrected the stale `resolve_input(file, max_bytes, timeout_ms)` signature (no `timeout_ms` exists). | BrunkenClaas |
 | 2026-08-04 | Release ritual step 3 (the between-release `-dev` bump) changed from a separate PR to a direct commit on `main`, with the carve-out's conditions stated: immediately after tagging, version-only, CI still runs on the push. Step 2 now says to check out `main` and pull before tagging, and to chain the commands. §6.2 + CONTRIBUTING. | BrunkenClaas |

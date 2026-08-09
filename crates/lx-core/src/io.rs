@@ -10,6 +10,14 @@ use crate::exit::LxError;
 /// Default maximum stdin bytes read before truncation (512 KiB).
 pub const DEFAULT_MAX_INPUT_BYTES: usize = 512 * 1024;
 
+/// Aggregate ceiling for tools that read many files into memory at once.
+///
+/// `max_input_bytes` is a **per-source** limit. A tool that walks a directory
+/// multiplies it by the file count, so memory is unbounded without a second
+/// ceiling: at 512 KiB across 1000 files that is already 500 MB. Tools that
+/// walk directories must budget against this in addition to the per-file limit.
+pub const DEFAULT_MAX_TOTAL_INPUT_BYTES: usize = 64 * 1024 * 1024;
+
 // ── Byte-safe truncation ──────────────────────────────────────────────────────
 
 /// Truncate `s` to at most `max_bytes`, snapping back to the nearest character

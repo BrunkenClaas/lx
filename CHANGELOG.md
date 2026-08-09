@@ -27,6 +27,23 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Fixed
 
+- **`lxgrep` now samples the whole input instead of only its head.** When a file
+  produced more candidates than the budget allowed, the sampler sorted them by
+  line number and truncated — which keeps the *lowest* line numbers, so the
+  model only ever saw the beginning of the file. On a 200,000-line list with a
+  match every tenth line it reached line 3,991: **two percent of the input**,
+  presented as a complete answer. Candidates are now thinned evenly across the
+  whole file, and a quarter of the budget is reserved for coverage so records
+  that share no keyword with the query stay reachable even when matches alone
+  could fill it. The same defect existed in three places — the line sampler, the
+  block sampler, and the global cap across files — and all three are fixed.
+  Coverage on the same input goes from ~2% to 100% at an unchanged budget.
+- **`lxgrep` now bounds total memory when searching a directory.**
+  `--max-input-bytes` is a per-file limit, and a directory walk multiplied it by
+  the file count with no aggregate ceiling. Searching a large tree could pull
+  hundreds of megabytes into memory. There is now a 64 MiB aggregate ceiling;
+  exceeding it is a clear error naming the remedy, rather than silently
+  searching whichever files sorted first.
 - **`lxjson` no longer rejects input of exactly `--max-input-bytes`.** It
   inferred "input too large" from `raw.len() >= max`, which also fired when the
   input landed precisely on the limit with nothing dropped. It now uses the
