@@ -8,6 +8,13 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Fixed
 
+- **`lxgrep` no longer strips the leading `/` from absolute paths.** Searching
+  from the filesystem root printed matches as `var/log/syslog:12:` instead of
+  `/var/log/syslog:12:`. Result paths are shown relative to the search root, and
+  when that root is `/` (or a drive root on Windows) the relative form drops the
+  separator, leaving a path that no longer resolves from anywhere else. Absolute
+  paths now stay absolute; the short relative form is unchanged everywhere else.
+
 - **`lxgrep` no longer warns that small results are incomplete.** A search over
   input far below the budget could still print "results are INCOMPLETE: input
   exceeded the search budget" — a 5 KB, 134-line directory listing was enough.
