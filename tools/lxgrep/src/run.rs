@@ -466,11 +466,19 @@ fn resolve_and_check_fsbound(path: &Path, root: &Path) -> Result<(String, PathBu
         )));
     }
 
-    // Display path: relative to root when possible.
+    // Display path: relative to root when that yields a usable relative path.
+    //
+    // When the root IS the filesystem root ("/" or a drive prefix like "C:\"),
+    // stripping it turns "/var/log/x.log" into "var/log/x.log" — a path that no
+    // longer resolves from anywhere but the root itself, and that reads like a
+    // broken absolute path. In that case keep the canonical path as-is.
     let display = canonical
         .strip_prefix(&root_canonical)
+        .ok()
+        .filter(|rel| !rel.as_os_str().is_empty())
+        .filter(|_| root_canonical.parent().is_some())
         .map(|rel| rel.to_string_lossy().to_string())
-        .unwrap_or_else(|_| canonical.to_string_lossy().to_string());
+        .unwrap_or_else(|| canonical.to_string_lossy().to_string());
 
     Ok((display, canonical))
 }
@@ -1034,5 +1042,42 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn display_path_stays_absolute_when_root_is_filesystem_root() {
+        // Running from "/" made the fsbound root "/", and stripping it turned
+        // "/var/log/x.log" into "var/log/x.log" — a path that reads as broken.
+        let tmp = std::env::temp_dir();
+        let file = tmp.join("lxgrep_display_abs.txt");
+        std::fs::write(&file, "hello\n").unwrap();
+
+        // The filesystem root of whatever volume tmp lives on.
+        let fs_root = std::fs::canonicalize(&tmp)
+            .unwrap()
+            .ancestors()
+            .last()
+            .unwrap()
+            .to_path_buf();
+
+        let (display, _) = resolve_and_check_fsbound(&file, &fs_root).unwrap();
+        let canonical = std::fs::canonicalize(&file).unwrap();
+        assert_eq!(display, canonical.to_string_lossy());
+
+        std::fs::remove_file(&file).ok();
+    }
+
+    #[test]
+    fn display_path_is_relative_under_a_normal_root() {
+        // The common case must keep the short, relative form.
+        let tmp = std::env::temp_dir().join("lxgrep_display_rel");
+        std::fs::create_dir_all(&tmp).unwrap();
+        let file = tmp.join("note.txt");
+        std::fs::write(&file, "hello\n").unwrap();
+
+        let (display, _) = resolve_and_check_fsbound(&file, &tmp).unwrap();
+        assert_eq!(display, "note.txt");
+
+        std::fs::remove_dir_all(&tmp).ok();
     }
 }

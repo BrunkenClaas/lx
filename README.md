@@ -3,12 +3,12 @@
 [![CI](https://github.com/BrunkenClaas/lx/actions/workflows/ci.yml/badge.svg)](https://github.com/BrunkenClaas/lx/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-Write a commit message from your diff, explain a scary command, turn plain
-English into a shell command — without leaving the terminal or pasting into a
-chat window. LX Coreutils is a suite of small, composable commands that each do
-one such job and pipe into the next.
+Write a commit message from your diff, turn plain English into a shell command,
+search a log for what you mean rather than what it says — without leaving the
+terminal or pasting into a chat window. LX Coreutils is a suite of small,
+composable commands that each do one such job and pipe into the next.
 
-![lxcommit, lxexplain, lxsh and lxlog running in a terminal: each command's real output appears within about a second](docs/assets/demo.gif)
+![lxcommit, lxsh, lxgrep and lxlog running in a terminal: each command's real output appears within about a second](docs/assets/demo.gif)
 
 **Runs on a local [Ollama](https://ollama.com) model by default — no API key,
 nothing leaves your machine.** Or point it at a hosted model (Anthropic, OpenAI,
@@ -19,8 +19,8 @@ start < 15 ms.
 ```sh
 # with a local model (default) or a cheap hosted one — then:
 git diff --staged | lxcommit               # write the commit message
-lxexplain "tar -xzf archive.tar.gz"        # explain any command
 lxsh "find all .log files older than 30d"  # natural language → shell
+lxgrep "failed logins" /var/log/auth.log   # grep by meaning, not by string
 journalctl -u nginx | lxlog                # triage a wall of logs
 ```
 
