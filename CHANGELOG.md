@@ -6,6 +6,18 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Fixed
+
+- **`lxgrep` no longer warns that small results are incomplete.** A search over
+  input far below the budget could still print "results are INCOMPLETE: input
+  exceeded the search budget" — a 5 KB, 134-line directory listing was enough.
+  The even-coverage sampler walks the input in fixed steps from the first line,
+  so it stopped short of the last one whenever the step size did not divide the
+  input exactly. That left a single uncovered line, and the completeness check
+  ("did every line reach the model?") correctly reported it as a gap — but the
+  warning told the user their input was too large, which it was not. The sampler
+  now always includes the final line. Genuine capping is still reported.
+
 ## [1.1.0] - 2026-08-09
 
 ### Changed
