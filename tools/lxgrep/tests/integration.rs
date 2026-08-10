@@ -321,3 +321,31 @@ fn prompt_size_is_bounded_by_the_candidate_budget_not_the_input_size() {
         p_large.len()
     );
 }
+
+#[test]
+fn capped_is_false_on_small_input_and_true_on_genuinely_capped_input() {
+    // Guards both directions of the flag that drives the "results are
+    // INCOMPLETE" warning: it must not cry wolf on a small input, and must
+    // still fire when the budget really does drop candidates.
+    let client = MockLlmClient::returning(r#"{"matches":[]}"#);
+    let cfg = Config::default();
+
+    let small: String = (0..134)
+        .map(|i| format!("-rw-r--r-- 1 u g {i} Jul 12 f{i}.rs\n"))
+        .collect();
+    let out = lxgrep::run::run(
+        "where do we handle retries?",
+        &[("<stdin>", &small)],
+        &cfg,
+        &client,
+    )
+    .unwrap();
+    assert!(
+        !out.capped,
+        "134 lines against a 40-block budget is not capped"
+    );
+
+    let big: String = (0..20_000).map(|i| format!("./src/mod{i}.rs\n")).collect();
+    let out = lxgrep::run::run("build related stuff", &[("<stdin>", &big)], &cfg, &client).unwrap();
+    assert!(out.capped, "20k lines against a 400-line budget IS capped");
+}

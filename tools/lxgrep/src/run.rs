@@ -250,6 +250,22 @@ fn evenly_sampled_indices(line_count: usize, window: usize, max_samples: usize) 
         indices.push(i);
         i += step;
     }
+    // Always anchor on the final line. The walk advances in fixed steps from 0,
+    // so it stops short of the end unless `step` happens to divide the input —
+    // leaving a tail of up to `step` lines that no block covers. That gap is
+    // invisible in the output but makes `capped` fire on inputs that were never
+    // close to the budget, turning a "results are INCOMPLETE" warning into a
+    // false alarm.
+    let last = line_count - 1;
+    if indices.last() != Some(&last) {
+        if indices.len() < max_samples {
+            indices.push(last);
+        } else {
+            // Budget is full: replace the final sample rather than exceed it.
+            let n = indices.len();
+            indices[n - 1] = last;
+        }
+    }
     indices
 }
 
@@ -973,5 +989,50 @@ mod tests {
             max_line > 19_000,
             "sparse hits must still reach the tail; deepest was {max_line}"
         );
+    }
+
+    #[test]
+    fn small_input_with_no_keyword_hits_is_not_reported_as_capped() {
+        // Regression: `ls -laR crates/ | lxgrep "where do we handle retries?"`
+        // warned "input exceeded the search budget" on a 134-line, 5 KB input
+        // against a 40-block budget. With no keyword hits the sampler filled
+        // from even coverage alone, whose walk stopped one line short of the
+        // end — so `capped` (n > covered) fired on a single uncovered line.
+        let content: String = (0..134)
+            .map(|i| format!("-rw-r--r-- 1 u g {i} Jul 12 f{i}.rs\n"))
+            .collect();
+        let kw = extract_keywords("where do we handle retries?");
+        assert!(
+            !content.lines().any(|l| line_matches_keyword(l, &kw)),
+            "fixture must have no keyword hits, or it tests the wrong path"
+        );
+        let (_blocks, capped) =
+            candidate_blocks_for_file(&content, "<stdin>", &kw, MAX_CANDIDATE_BLOCKS);
+        assert!(
+            !capped,
+            "134 lines against a 40-block budget must not report capping"
+        );
+    }
+
+    #[test]
+    fn even_sampling_always_reaches_the_final_line() {
+        // The walk advances in fixed steps from 0, so without an explicit anchor
+        // it stops short whenever `step` does not divide the input.
+        for line_count in [7usize, 100, 133, 134, 1_000, 20_001] {
+            for max_samples in [1usize, 3, 40, 400] {
+                let idx = evenly_sampled_indices(line_count, 1, max_samples);
+                assert!(!idx.is_empty(), "n={line_count} k={max_samples}");
+                assert!(
+                    idx.len() <= max_samples,
+                    "budget exceeded: n={line_count} k={max_samples} -> {}",
+                    idx.len()
+                );
+                assert_eq!(
+                    *idx.last().unwrap(),
+                    line_count - 1,
+                    "last line unreachable: n={line_count} k={max_samples}"
+                );
+            }
+        }
     }
 }

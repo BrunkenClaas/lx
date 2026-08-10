@@ -1000,6 +1000,28 @@ warning must survive a pipeline, it is a **warning and not narration** —
 narration is hidden as soon as stdout is not a terminal, which is exactly the
 case where a silently partial answer does the most damage.
 
+**A coverage-based `capped` requires a sampler that reaches the last line.**
+There are two ways to compute the flag, and they fail differently:
+
+| Form | Example | Failure mode |
+|---|---|---|
+| Size test — `total > MAX_SAMPLE_LINES` | `lxlog` | Cannot false-positive; says nothing about which lines were actually covered |
+| Coverage test — `n > covered` | `lxgrep` | Honest about real gaps, but **any** uncovered line fires it |
+
+The coverage form is the more truthful of the two and is preferred — but it makes
+a stepping sampler's arithmetic user-visible. A walk of the form `i += step` (or
+the equivalent `idx % step == 0`) starts at 0 and lands on the last line only
+when `step` divides the input exactly; otherwise a tail of up to `step` lines is
+never covered. With a size test that is invisible; with a coverage test it prints
+"input exceeded the search budget" on an input that used one fortieth of it.
+
+So: **before converting a `capped` to the coverage form, make the sampler anchor
+on the final line.** `lxgrep::evenly_sampled_indices` does this explicitly;
+`downsample_evenly` and `lxcsv`'s `i * (n - 1) / (k - 1)` get it for free from
+the closed form, which is the better shape when the sample size is known upfront.
+`lxlog`'s fill step has the tail-miss but uses a size test, so it is currently
+harmless — converting it without fixing the walk would reintroduce the bug.
+
 **Sampling and input truncation are separate facts and get separate flags.**
 `capped` means the sampler dropped candidates it had; `input_truncated` (from
 the `_checked` readers, §4) means the byte limit cut the input short *before*
@@ -1805,6 +1827,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-10 | §7.5: documented the two forms of the `capped` flag (size test vs coverage test) and the precondition the coverage form imposes — a stepping sampler must anchor on the final line or it reports a full input as incomplete. Records that `lxlog`'s fill step has the same tail-miss but is harmless under its size test, so converting it needs the walk fixed first. | BrunkenClaas |
 | 2026-08-09 | Added `.github/release.yml` so the auto-generated release notes exclude PRs labelled `no-release-note`; release ritual step 1 now says to apply that label to the release PR, which otherwise appears in the *next* release's notes. Deliberately filter-only (no `categories:`) — `CHANGELOG.md` stays the authoritative history. | BrunkenClaas |
 | 2026-08-09 | Released 1.1.0 (all crates 1.0.7-dev→1.1.0). **Suite label `2026-07`→`2026-08`** — the first bump since 1.0.0, triggered by the minor release rather than the calendar (§6.2 now states that distinction). | BrunkenClaas |
 | 2026-08-09 | Verification pass against the code ("Last reviewed" bumped): corrected the `run()` contract in §3.4 and §14, which still showed `Result<Output, LxError>` for all tools although 16 now return `(Output, Vec<String>)`; confirmed §4's `io` inventory, the §8.2 config table, the §9.2 tier examples, the 72-tools-plus-`lx` count, and every cited `lx_*::` symbol. Also brought 11 per-tool READMEs' JSON examples up to date with `input_truncated`, and `lxcsv`'s stale `used_rows` sample. | BrunkenClaas |
