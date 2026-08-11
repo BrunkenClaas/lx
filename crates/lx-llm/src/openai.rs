@@ -101,6 +101,10 @@ struct ChatResponse {
 #[derive(Deserialize)]
 struct Choice {
     message: AssistantMessage,
+    /// `"length"` when the provider cut generation at the token cap. Absent on
+    /// proxies that omit it, which then fall back to the salvage signal.
+    #[serde(default)]
+    finish_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -206,11 +210,11 @@ impl LlmClient for OpenAiClient {
                         .into_json()
                         .map_err(|e| LlmError::Parse(e.to_string()))?;
 
-                    let content = parsed
+                    let (content, finish_reason) = parsed
                         .choices
                         .into_iter()
                         .next()
-                        .map(|c| c.message.content)
+                        .map(|c| (c.message.content, c.finish_reason))
                         .unwrap_or_default();
 
                     let (pt, ct) = parsed
@@ -228,6 +232,10 @@ impl LlmClient for OpenAiClient {
                         content,
                         prompt_tokens: pt,
                         completion_tokens: ct,
+                        stop_reason: crate::StopReason::from_provider(
+                            finish_reason.as_deref(),
+                            "length",
+                        ),
                     });
                 }
 

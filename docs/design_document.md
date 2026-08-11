@@ -1,6 +1,6 @@
 # LX Coreutils — Design Document
 
-**Status:** Living document · **Last reviewed:** 2026-08-09 · **Audience:** maintainers and contributors
+**Status:** Living document · **Last reviewed:** 2026-08-11 · **Audience:** maintainers and contributors
 
 LX Coreutils is a collection of **72 small, fast, LLM-powered command-line tools**
 for Linux and Windows. Each tool does exactly one thing, starts in single-digit
@@ -346,16 +346,20 @@ Provider-agnostic LLM access. The public surface:
   `"auto"`; unlike `inject_lang` it does NOT append anything when the placeholder
   is absent — only OS-aware tools include `{os}` in their `system.txt`.
 - **`schema`** — `parse_response`, `validate_json`, `extract_text` for turning the
-  model's text into a validated, typed result. Tolerant parsing: strips code
+  model's text into a validated, typed result, plus the `_checked` siblings
+  `parse_response_checked` / `validate_json_checked` that also return
+  `Completeness`. Tolerant parsing: strips code
   fences and `[lang-fallback]` prefixes, escapes bare control characters
   (U+0000–U+001F emitted literally by local models), fixes invalid backslash
   escapes (`\p`, `\d`, `\1`, etc. in awk/sed/regex strings → `\\p`, `\\d`, …),
   and extracts the first balanced JSON value from surrounding prose. If the response
   was truncated at `max_tokens` (unbalanced JSON, EOF mid-value), it salvages the
   largest valid prefix — closing at the outermost open collection and dropping
-  any partial trailing element — then emits a one-line stderr warning rather than
+  any partial trailing element — and reports `Completeness::Salvaged` rather than
   failing. This means oversized outputs degrade gracefully (a partial table/list)
-  instead of erroring.
+  instead of erroring. It prints **nothing**: it runs inside `run()`, so the
+  caller surfaces the fact (§7.5). Note that recovering a value from around a
+  prose preamble is *not* salvage and reports `Complete`.
 - **`fragments`** — reusable prompt constants: `UNTRUSTED_DATA_INSTRUCTION`
   (prompt-injection hardening), `JSON_ONLY_INSTRUCTION`,
   `DANGEROUS_COMMAND_INSTRUCTION`, and a `render(template, vars)` helper.
@@ -1022,12 +1026,49 @@ the closed form, which is the better shape when the sample size is known upfront
 `lxlog`'s fill step has the tail-miss but uses a size test, so it is currently
 harmless — converting it without fixing the walk would reintroduce the bug.
 
-**Sampling and input truncation are separate facts and get separate flags.**
-`capped` means the sampler dropped candidates it had; `input_truncated` (from
-the `_checked` readers, §4) means the byte limit cut the input short *before*
-the sampler ever saw it. The remedies differ — narrow the query versus raise
-`--max-input-bytes` — so `lxgrep`, `lxlog` and `lxpull` carry both and warn
-about each distinctly. Merging them would tell the user to do the wrong thing.
+**Sampling, input truncation and response truncation are separate facts and get
+separate flags.** `capped` means the sampler dropped candidates it had;
+`input_truncated` (from the `_checked` readers, §4) means the byte limit cut the
+input short *before* the sampler ever saw it; `response_truncated` means the
+input was fine and the **model's own reply** was cut at the token cap. The
+remedies differ — narrow the query, raise `--max-input-bytes`, or narrow the
+query again but for a different reason — so tools carry each one they can
+observe and warn about each distinctly. Merging them would tell the user to do
+the wrong thing.
+
+##### Detecting a truncated response
+
+Two signals, checked together, because neither is sufficient:
+
+| Signal | Source | Misses |
+|---|---|---|
+| `Completeness::Salvaged` | the JSON parser had to salvage a prefix | a reply cut on a token boundary that still parses |
+| `StopReason::Length` | the provider's `finish_reason` / `stop_reason` / `done_reason` | providers that omit the field (→ `Unknown`) |
+
+```rust
+let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+out.response_truncated =
+    completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
+```
+
+Only an explicit length-stop counts; any other reported reason maps to
+`Complete` so a provider-specific value never raises a spurious warning.
+
+**The salvaged elements are a prefix, not a selection** — what the model wrote
+first. For a relevance-ordered list that is close to a worst-case subset, since
+the weakest results survive and the best may be the ones dropped. The selection
+is nonetheless left alone: nothing at the `serde_json::Value` layer can tell a
+ranked collection from an order-significant one (`lxtable` rows, `lxconv`
+records) where the prefix is exactly right, and erroring instead would turn a
+degraded-but-useful result into a hard failure for every tool. The fix is
+disclosure, not reselection — which is why the warning says these are the first
+entries the model emitted rather than its best.
+
+**The library never prints this.** `validate_json` runs inside `run()`, so it
+reports through its return value and `main.rs` emits the warning via
+`lx_core::output::warn` (§9.2). `parse_response` / `validate_json` remain the
+default entry points and silently discard the signal; `parse_response_checked` /
+`validate_json_checked` are the opt-in siblings for tools that can report it.
 
 **A per-source byte limit is not a memory bound.** `limits.max_input_bytes`
 applies to each file, so a tool that walks a directory multiplies it by the file
@@ -1827,6 +1868,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-11 | §7.5: added `response_truncated` as a third, distinct incompleteness fact (the model's *reply* was cut, not its input) with the two-signal detection rule — the parser's salvage flag plus the provider's stop reason, since neither alone is sufficient: salvage misses a cut on a token boundary that still parses, and not every provider reports a stop reason. Documents that salvaged elements are a **prefix, not a selection** and why the selection is nonetheless left alone (nothing at the `Value` layer distinguishes a ranked list from an order-significant one). §4: `schema` gains the `_checked` siblings and no longer "emits a one-line stderr warning" — the library now prints nothing, because it runs inside `run()`. Removes the only unconditional `eprintln!` in `lx-llm`, which bypassed `--quiet` and prescribed raising a cap that is a compile-time constant. | BrunkenClaas |
 | 2026-08-10 | §7.5: documented the two forms of the `capped` flag (size test vs coverage test) and the precondition the coverage form imposes — a stepping sampler must anchor on the final line or it reports a full input as incomplete. Records that `lxlog`'s fill step has the same tail-miss but is harmless under its size test, so converting it needs the walk fixed first. | BrunkenClaas |
 | 2026-08-09 | Added `.github/release.yml` so the auto-generated release notes exclude PRs labelled `no-release-note`; release ritual step 1 now says to apply that label to the release PR, which otherwise appears in the *next* release's notes. Deliberately filter-only (no `categories:`) — `CHANGELOG.md` stays the authoritative history. | BrunkenClaas |
 | 2026-08-09 | Released 1.1.0 (all crates 1.0.7-dev→1.1.0). **Suite label `2026-07`→`2026-08`** — the first bump since 1.0.0, triggered by the minor release rather than the calendar (§6.2 now states that distinction). | BrunkenClaas |

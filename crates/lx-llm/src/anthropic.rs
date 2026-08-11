@@ -82,6 +82,9 @@ struct MessagesRequest {
 struct MessagesResponse {
     content: Vec<ContentBlock>,
     usage: Option<AnthropicUsage>,
+    /// `"max_tokens"` when the provider cut generation at the token cap.
+    #[serde(default)]
+    stop_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -160,6 +163,11 @@ impl LlmClient for AnthropicClient {
                         .into_json()
                         .map_err(|e| LlmError::Parse(e.to_string()))?;
 
+                    let stop_reason = crate::StopReason::from_provider(
+                        parsed.stop_reason.as_deref(),
+                        "max_tokens",
+                    );
+
                     let content = parsed
                         .content
                         .into_iter()
@@ -182,6 +190,7 @@ impl LlmClient for AnthropicClient {
                         content,
                         prompt_tokens: pt,
                         completion_tokens: ct,
+                        stop_reason,
                     });
                 }
 

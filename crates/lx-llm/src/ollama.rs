@@ -131,6 +131,10 @@ struct ChatResponse {
     prompt_eval_count: Option<u32>,
     /// Response tokens generated.
     eval_count: Option<u32>,
+    /// `"length"` when generation stopped at `num_predict` rather than
+    /// finishing on its own.
+    #[serde(default)]
+    done_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -212,6 +216,10 @@ impl LlmClient for OllamaClient {
                         content: parsed.message.content,
                         prompt_tokens: pt,
                         completion_tokens: ct,
+                        stop_reason: crate::StopReason::from_provider(
+                            parsed.done_reason.as_deref(),
+                            "length",
+                        ),
                     });
                 }
 
