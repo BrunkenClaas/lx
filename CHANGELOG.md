@@ -8,6 +8,19 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ### Fixed
 
+- **A truncated model response no longer prints a warning that bypasses
+  `--quiet` and names a remedy it never checked.** When a reply was cut at the
+  token limit mid-JSON, `lx-llm` salvaged the valid prefix and printed *"Raise
+  the tool's limit or narrow the input"* straight to stderr from inside `run()`
+  — ignoring `--quiet`, and prescribing a fix that is often impossible: the cut
+  can happen well below the tool's own cap, and a tool's `max_tokens` is a
+  compile-time constant with no user-facing flag. The library is now silent and
+  reports the fact in its return value, so each tool can surface it through the
+  normal warning channel with a remedy it can justify. Providers' stop reasons
+  (`finish_reason`, `stop_reason`, `done_reason`) are now read as well, which
+  catches a reply cut on a token boundary that still parses as valid JSON — a
+  case the previous JSON-only detection missed entirely.
+
 - **`lxgrep` no longer strips the leading `/` from absolute paths.** Searching
   from the filesystem root printed matches as `var/log/syslog:12:` instead of
   `/var/log/syslog:12:`. Result paths are shown relative to the search root, and

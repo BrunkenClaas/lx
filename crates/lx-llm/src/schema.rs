@@ -91,6 +91,15 @@ fn record_safe(safe_end_at_depth: &mut Vec<Option<usize>>, depth: usize, end: us
 ///
 /// Returns `None` if the input is not a truncated structure (already balanced,
 /// no opener) or if nothing complete precedes the truncation point.
+///
+/// ⚠️ **The retained elements are a prefix, not a selection.** They are what the
+/// model wrote first, which for a relevance-ordered list (`lxgrep` matches,
+/// `lxfind` paths) is close to a worst-case subset — the weakest results
+/// survive and the best may be the ones dropped. Nothing here can tell a ranked
+/// collection from an order-significant one (`lxtable` rows, `lxconv` records),
+/// where the prefix is exactly right, so the selection is deliberately left
+/// alone and callers are told instead: the salvage is reported through
+/// [`Completeness::Salvaged`] so the tool can surface it.
 fn salvage_truncated_json(s: &str) -> Option<String> {
     let bytes = s.as_bytes();
     let start = bytes.iter().position(|&b| b == b'{' || b == b'[')?;
@@ -372,7 +381,42 @@ fn excerpt_for_error(raw: &str) -> String {
     }
 }
 
+/// Whether a parsed value is the model's whole answer or a salvaged fragment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Completeness {
+    /// The response parsed as a whole value.
+    Complete,
+    /// The response was cut mid-JSON and the largest valid prefix was
+    /// recovered.
+    ///
+    /// The value is well-formed but incomplete, and **any collection in it is a
+    /// prefix** of what the model produced — the elements it happened to write
+    /// first, not a subset chosen on merit. For a relevance-ranked list that is
+    /// close to a worst-case selection, so a caller that ranks must surface
+    /// this rather than presenting the result as complete.
+    Salvaged,
+}
+
+impl Completeness {
+    /// True when the value was recovered from a truncated response.
+    pub fn is_salvaged(self) -> bool {
+        matches!(self, Completeness::Salvaged)
+    }
+}
+
 /// Parse and validate a JSON response from the model.
+///
+/// Thin wrapper over [`validate_json_checked`] that discards the completeness
+/// signal. Prefer the checked variant when the caller can report truncation.
+///
+/// # Errors
+/// Returns `LxError::LogicalError` with message
+/// `"model returned invalid response: <reason>"` on any failure.
+pub fn validate_json(response: &str, required_fields: &[&str]) -> Result<Value, LxError> {
+    validate_json_checked(response, required_fields).map(|(value, _)| value)
+}
+
+/// Parse and validate a JSON response, reporting whether it had to be salvaged.
 ///
 /// Steps:
 /// 1. Strip `[lang-fallback]` prefix (emits no warning here — caller decides).
@@ -383,20 +427,33 @@ fn excerpt_for_error(raw: &str) -> String {
 ///    (tolerates leading prose and trailing junk from the model).
 /// 5. Verify every field in `required_fields` is present and non-null.
 ///
+/// Emits nothing: this runs inside `run()`, which must stay pure, so the caller
+/// decides how (and whether) to surface [`Completeness::Salvaged`].
+///
+/// Note that step 4 is *not* salvage — recovering a balanced value from around
+/// a prose preamble yields the model's whole answer, so it reports
+/// [`Completeness::Complete`].
+///
 /// # Errors
 /// Returns `LxError::LogicalError` with message
 /// `"model returned invalid response: <reason>"` on any failure.
-pub fn validate_json(response: &str, required_fields: &[&str]) -> Result<Value, LxError> {
+pub fn validate_json_checked(
+    response: &str,
+    required_fields: &[&str],
+) -> Result<(Value, Completeness), LxError> {
     let (cleaned, _was_fallback) = strip_lang_fallback(response);
     let cleaned = strip_code_fences(&cleaned);
     let sanitized = escape_control_chars(cleaned);
     let cleaned = sanitized.as_ref();
 
+    let mut completeness = Completeness::Complete;
+
     let value: Value = match serde_json::from_str::<Value>(cleaned) {
         Ok(v) => v,
         Err(first_err) => {
             // Fallback 1: extract first balanced value to tolerate preamble /
-            // trailing text.
+            // trailing text. This recovers the model's WHOLE answer, so it is
+            // not salvage and must not report Salvaged.
             if let Some(v) = extract_json_value(cleaned)
                 .and_then(|slice| serde_json::from_str::<Value>(slice).ok())
             {
@@ -409,14 +466,12 @@ pub fn validate_json(response: &str, required_fields: &[&str]) -> Result<Value, 
                     .and_then(|s| serde_json::from_str::<Value>(&s).ok())
                 {
                     Some(v) => {
-                        eprintln!(
-                            "[lx-llm] warning: response truncated at max_tokens; recovered partial result (some items dropped). Raise the tool's limit or narrow the input for complete output."
-                        );
+                        completeness = Completeness::Salvaged;
                         v
                     }
                     None => {
                         return Err(LxError::LogicalError(format!(
-                            "model returned invalid response: failed to parse JSON: {first_err}\n  hint: try --verbose for request diagnostics\n  hint: response may have been truncated; the tool's max_tokens may be too low"
+                            "model returned invalid response: failed to parse JSON: {first_err}\n  hint: try --verbose for request diagnostics\n  hint: the response ended mid-value — the model's reply was cut short and no complete prefix could be recovered"
                         )));
                     }
                 }
@@ -450,7 +505,7 @@ pub fn validate_json(response: &str, required_fields: &[&str]) -> Result<Value, 
         }
     }
 
-    Ok(value)
+    Ok((value, completeness))
 }
 
 /// Parse and deserialize a JSON response from the model into a typed struct.
@@ -460,13 +515,35 @@ pub fn validate_json(response: &str, required_fields: &[&str]) -> Result<Value, 
 /// let out = parse_response::<MyOutput>(&resp.content)?;
 /// ```
 /// Strips code fences and `[lang-fallback]` prefix before deserializing.
+///
+/// Discards the completeness signal: a truncated response deserializes into a
+/// value that looks whole. Use [`parse_response_checked`] wherever the tool can
+/// report the fact — silently dropping elements of a collection is the failure
+/// this wrapper cannot warn about.
 pub fn parse_response<T: serde::de::DeserializeOwned>(response: &str) -> Result<T, LxError> {
-    let value = validate_json(response, &[])?;
-    serde_json::from_value(value).map_err(|e| {
+    parse_response_checked(response).map(|(value, _)| value)
+}
+
+/// Parse and deserialize a JSON response, reporting whether it was salvaged.
+///
+/// Same parsing as [`parse_response`], plus the [`Completeness`] signal so the
+/// caller can mark a truncated result. Combine it with the provider's stop
+/// reason, which catches a reply cut on a token boundary that still parses:
+/// ```ignore
+/// let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+/// out.response_truncated =
+///     completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
+/// ```
+pub fn parse_response_checked<T: serde::de::DeserializeOwned>(
+    response: &str,
+) -> Result<(T, Completeness), LxError> {
+    let (value, completeness) = validate_json_checked(response, &[])?;
+    let parsed = serde_json::from_value(value).map_err(|e| {
         LxError::LogicalError(format!(
             "model returned invalid response: schema mismatch: {e}\n  hint: try --verbose for request diagnostics"
         ))
-    })
+    })?;
+    Ok((parsed, completeness))
 }
 
 /// Extract plain text from a model response.
@@ -609,8 +686,8 @@ mod tests {
         // has no salvageable complete member, so it still errors with the hint.
         let err = validate_json(r#"{"answer":"4"#, &[]).unwrap_err();
         let msg = err.to_string();
-        assert!(msg.contains("truncated"), "got: {msg}");
-        assert!(msg.contains("max_tokens"), "got: {msg}");
+        assert!(msg.contains("ended mid-value"), "got: {msg}");
+        assert!(msg.contains("cut short"), "got: {msg}");
     }
 
     // ── Truncation salvage ──────────────────────────────────────────────────
@@ -728,12 +805,17 @@ mod tests {
     }
 
     #[test]
-    fn validate_json_truncated_still_blames_max_tokens() {
+    fn validate_json_truncated_reports_a_cut_short_reply() {
         // Guard the other branch: a genuinely truncated value (EOF, no salvage)
-        // must STILL point at max_tokens, not the prose message.
+        // must be reported as a cut-short reply, not as a prose reply.
+        //
+        // The hint deliberately no longer names max_tokens as the remedy: the
+        // cut can happen below the tool's own cap (observed at 2048 on a
+        // 64-line input), and a tool's MAX_TOKENS is a compile-time constant
+        // the user cannot raise. State the observation, not a cure.
         let err = validate_json(r#"{"answer":"4"#, &[]).unwrap_err();
         let msg = err.to_string();
-        assert!(msg.contains("max_tokens"), "got: {msg}");
+        assert!(msg.contains("cut short"), "got: {msg}");
         assert!(
             !msg.contains("replied with text instead of JSON"),
             "truncation must not be reported as prose, got: {msg}"
@@ -908,5 +990,89 @@ mod tests {
     #[test]
     fn extract_text_clean_passthrough() {
         assert_eq!(extract_text("hello"), "hello");
+    }
+
+    // ── Completeness reporting ──────────────────────────────────────────────
+
+    #[test]
+    fn checked_reports_complete_on_clean_json() {
+        let (_, c) = validate_json_checked(r#"{"rows":[["a","b"]]}"#, &[]).unwrap();
+        assert_eq!(c, Completeness::Complete);
+        assert!(!c.is_salvaged());
+    }
+
+    #[test]
+    fn checked_reports_salvaged_on_truncated_json() {
+        // Same fixture as salvage_lxtable_shape: cut mid-row.
+        let input = r#"{"columns":["name","kind"],"rows":[["lxsum","tier1"],["lxgrep","ti"#;
+        let (v, c) = validate_json_checked(input, &[]).unwrap();
+        assert_eq!(c, Completeness::Salvaged);
+        assert!(c.is_salvaged());
+        assert_eq!(v["rows"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn checked_reports_complete_when_value_extracted_from_preamble() {
+        // The important negative case: recovering a balanced value from around
+        // prose is NOT salvage — the model's whole answer is there. Reporting
+        // Salvaged here would make every chatty model warn spuriously.
+        let input = "Here is the result:\n{\"rows\":[[\"a\",\"b\"]]}\nHope that helps!";
+        let (v, c) = validate_json_checked(input, &[]).unwrap();
+        assert_eq!(c, Completeness::Complete, "extraction is not salvage");
+        assert_eq!(v["rows"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn parse_response_checked_matches_the_plain_wrapper() {
+        #[derive(serde::Deserialize)]
+        struct Out {
+            rows: Vec<Vec<String>>,
+        }
+        let input = r#"{"rows":[["a","b"],["c","d"],["e","#;
+
+        let (checked, c) = parse_response_checked::<Out>(input).unwrap();
+        let plain = parse_response::<Out>(input).unwrap();
+
+        assert_eq!(c, Completeness::Salvaged);
+        assert_eq!(checked.rows.len(), plain.rows.len());
+        assert_eq!(plain.rows.len(), 2, "wrapper still salvages, just silently");
+    }
+
+    #[test]
+    fn stop_reason_maps_only_explicit_length_stops() {
+        use crate::StopReason;
+        // OpenAI-compatible and Ollama spell it "length"; Anthropic
+        // "max_tokens". Everything else is a normal finish.
+        assert_eq!(
+            StopReason::from_provider(Some("length"), "length"),
+            StopReason::Length
+        );
+        assert_eq!(
+            StopReason::from_provider(Some("max_tokens"), "max_tokens"),
+            StopReason::Length
+        );
+        assert_eq!(
+            StopReason::from_provider(Some("stop"), "length"),
+            StopReason::Complete
+        );
+        assert_eq!(
+            StopReason::from_provider(Some("end_turn"), "max_tokens"),
+            StopReason::Complete
+        );
+        // An unrecognised reason must not warn.
+        assert_eq!(
+            StopReason::from_provider(Some("tool_use"), "max_tokens"),
+            StopReason::Complete
+        );
+        // A provider that omits the field falls back to the salvage signal.
+        assert_eq!(
+            StopReason::from_provider(None, "length"),
+            StopReason::Unknown
+        );
+        // Anthropic's "max_tokens" is not a length stop on an OpenAI wire.
+        assert_eq!(
+            StopReason::from_provider(Some("max_tokens"), "length"),
+            StopReason::Complete
+        );
     }
 }

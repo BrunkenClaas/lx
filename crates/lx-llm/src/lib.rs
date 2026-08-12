@@ -16,7 +16,10 @@ pub use fragments::{
     render, DANGEROUS_COMMAND_INSTRUCTION, JSON_ONLY_INSTRUCTION, UNTRUSTED_DATA_INSTRUCTION,
 };
 pub use lang::{inject_lang, inject_os, strip_lang_fallback};
-pub use schema::{extract_text, parse_response, validate_json};
+pub use schema::{
+    extract_text, parse_response, parse_response_checked, validate_json, validate_json_checked,
+    Completeness,
+};
 
 /// Base64-encoded image data for multimodal requests.
 #[derive(Debug, Clone)]
@@ -41,6 +44,45 @@ pub struct Request<'a> {
     pub image: Option<ImageData>,
 }
 
+/// Why the provider stopped generating, when it says.
+///
+/// [`StopReason::Length`] is the only variant with a correctness consequence:
+/// the response is a *prefix* of what the model intended to write, so any
+/// collection in it is incomplete. Providers that report nothing usable yield
+/// [`StopReason::Unknown`], in which case the JSON parser's own salvage signal
+/// ([`Completeness`]) is the only evidence available.
+///
+/// A stop reason we do not recognise maps to [`StopReason::Complete`]: only an
+/// explicit length-stop is treated as truncation, so a provider-specific value
+/// such as `tool_use` never raises a spurious warning.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum StopReason {
+    /// The model finished on its own.
+    Complete,
+    /// The provider cut generation at the token cap.
+    Length,
+    /// The provider reported no usable stop reason.
+    #[default]
+    Unknown,
+}
+
+impl StopReason {
+    /// Map a provider's raw stop-reason string onto [`StopReason`].
+    ///
+    /// `length_value` is the provider's own spelling of a token-cap stop:
+    /// `"length"` for OpenAI-compatible and Ollama, `"max_tokens"` for
+    /// Anthropic. Every other non-empty value is [`StopReason::Complete`] —
+    /// only an explicit length-stop counts as truncation. A missing field is
+    /// [`StopReason::Unknown`].
+    pub fn from_provider(raw: Option<&str>, length_value: &str) -> Self {
+        match raw {
+            None => StopReason::Unknown,
+            Some(v) if v == length_value => StopReason::Length,
+            Some(_) => StopReason::Complete,
+        }
+    }
+}
+
 /// The LLM's response to a single completion request.
 pub struct Response {
     /// The text content of the first choice / first message block.
@@ -49,6 +91,12 @@ pub struct Response {
     pub prompt_tokens: Option<u32>,
     /// Completion / output tokens consumed, if reported by the provider.
     pub completion_tokens: Option<u32>,
+    /// Why generation stopped, when the provider reports it.
+    ///
+    /// Checked alongside [`Completeness`] to decide whether a result is a
+    /// truncated prefix: the provider signal catches a reply cut on a token
+    /// boundary that still parses as valid JSON, which salvage cannot see.
+    pub stop_reason: StopReason,
 }
 
 /// Provider-agnostic LLM client.

@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use lx_llm::{ImageData, LlmClient, LlmError, Request, Response};
+use lx_llm::{ImageData, LlmClient, LlmError, Request, Response, StopReason};
 
 /// A single captured LLM request for inspection in tests.
 #[derive(Debug, Clone)]
@@ -22,6 +22,8 @@ pub struct MockLlmClient {
     response: String,
     /// Return `LlmError::Network` when the call count reaches this value (1-based).
     error_on_call: Option<usize>,
+    /// Stop reason reported on every response. Defaults to `Complete`.
+    stop_reason: StopReason,
     pub calls: Arc<Mutex<Vec<CapturedRequest>>>,
 }
 
@@ -31,6 +33,7 @@ impl MockLlmClient {
         MockLlmClient {
             response: response.to_string(),
             error_on_call: None,
+            stop_reason: StopReason::Complete,
             calls: Arc::new(Mutex::new(Vec::new())),
         }
     }
@@ -42,8 +45,24 @@ impl MockLlmClient {
         MockLlmClient {
             response: String::new(),
             error_on_call: Some(call_n),
+            stop_reason: StopReason::Complete,
             calls: Arc::new(Mutex::new(Vec::new())),
         }
+    }
+
+    /// Report `reason` as the provider's stop reason on every response.
+    ///
+    /// Use `StopReason::Length` to simulate a provider cutting generation at
+    /// the token cap. Pair it with *valid* JSON to cover the case salvage
+    /// cannot detect: a reply cut on a token boundary that still parses.
+    ///
+    /// ```ignore
+    /// let client = MockLlmClient::returning(r#"{"matches":[]}"#)
+    ///     .with_stop_reason(StopReason::Length);
+    /// ```
+    pub fn with_stop_reason(mut self, reason: StopReason) -> Self {
+        self.stop_reason = reason;
+        self
     }
 
     /// Return the most recent captured request.
@@ -88,6 +107,7 @@ impl LlmClient for MockLlmClient {
             content: self.response.clone(),
             prompt_tokens: Some(10),
             completion_tokens: Some(20),
+            stop_reason: self.stop_reason,
         })
     }
 }
