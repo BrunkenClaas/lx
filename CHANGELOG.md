@@ -6,6 +6,20 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+### Added
+
+- **`response_truncated` in `--json` on the twelve tools whose result is a list.**
+  When a model's reply is cut at its token limit, the parser recovers the valid
+  prefix — so a consumer received a short, plausible-looking result with nothing
+  marking it as partial. `lxgrep --json` reported `capped: false,
+  input_truncated: false` next to a list that was missing most of its entries,
+  and a pipeline had no way to tell. The new field is a third distinct fact from
+  those two: the input was fine, the *answer* stopped early. Each tool also warns
+  on stderr, saying plainly that the entries kept are the ones the model wrote
+  **first** — not its best matches, which for a ranked list is close to a
+  worst-case subset. Covers `lxgrep`, `lxfind`, `lxpull`, `lxtable`, `lxlog`,
+  `lxjson`, `lxtodo`, `lxdigest`, `lxgraph`, `lxcve`, `lxnotes` and `lxconf`.
+
 ### Fixed
 
 - **A truncated model response no longer prints a warning that bypasses

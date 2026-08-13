@@ -9,5 +9,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
     "Sales Q2",
     "Sales Q3",
     "Sales Q4"
-  ]
+  ],
+  "response_truncated": false
 }

@@ -149,6 +149,7 @@ fn to_plain_returns_json_string() {
         json: r#"{"key":"value"}"#.to_string(),
         method: "local".to_string(),
         changes: vec![],
+        response_truncated: false,
     };
     assert_eq!(out.to_plain(), r#"{"key":"value"}"#);
 }

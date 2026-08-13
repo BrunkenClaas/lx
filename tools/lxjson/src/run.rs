@@ -1,6 +1,6 @@
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
@@ -15,6 +15,13 @@ pub struct Output {
     pub method: String,
     /// Human-readable descriptions of what was changed.
     pub changes: Vec<String>,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived, so `json` may be missing its tail and `changes`
+    /// its later entries. Always false on the local-repair path, which makes no
+    /// LLM call. Set locally from the provider's stop reason and the parser's
+    /// salvage signal, never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -42,6 +49,8 @@ fn try_local_repair(input: &str) -> Option<Output> {
             json: compact,
             method: "local".to_string(),
             changes: vec![],
+            // Local repair makes no LLM call, so nothing can be cut short.
+            response_truncated: false,
         });
     }
 
@@ -84,6 +93,7 @@ fn try_local_repair(input: &str) -> Option<Output> {
                 json: compact,
                 method: "local".to_string(),
                 changes,
+                response_truncated: false,
             })
         }
         Err(_) => None,
@@ -349,7 +359,11 @@ pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Outpu
 
     let resp = client.complete(&req).map_err(LxError::from)?;
 
-    parse_response::<Output>(&resp.content)
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
+    Ok(out)
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

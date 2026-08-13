@@ -139,6 +139,15 @@ fn main() {
             for w in &warnings {
                 lx_core::output::warn(w);
             }
+            // Distinct from the listing-truncation warnings above: the input was
+            // fine, the model's own reply stopped early.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "this digest is INCOMPLETE: the model's reply hit its token limit \
+                     mid-answer, so the summary may stop mid-sentence and the notable \
+                     files list may be short. Digest a smaller tree and re-run.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

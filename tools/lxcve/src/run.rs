@@ -1,6 +1,6 @@
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
@@ -30,6 +30,12 @@ fn default_confidence() -> String {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Output {
     pub vulns: Vec<Vuln>,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived, so these are the findings it wrote **first**, not
+    /// the most severe ones. Set locally from the provider's stop reason and the
+    /// parser's salvage signal, never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -91,5 +97,9 @@ pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Outpu
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    parse_response::<Output>(&resp.content)
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
+    Ok(out)
 }

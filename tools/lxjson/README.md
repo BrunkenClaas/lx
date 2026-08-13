@@ -28,23 +28,20 @@ $ echo "{name: 'Alice', age: 30,}" | lxjson
 ```json
 $ echo "{name: 'Alice', age: 30,}" | lxjson --json
 {
-  "fixed": "{\"name\":\"Alice\",\"age\":30}",
-  "errors": [
-    {
-      "description": "Keys must be quoted strings in JSON.",
-      "fix": "Wrapped 'name' and 'age' in double quotes."
-    },
-    {
-      "description": "String values must use double quotes, not single quotes.",
-      "fix": "Replaced single-quoted value 'Alice' with \"Alice\"."
-    },
-    {
-      "description": "Trailing comma after the last property is not valid JSON.",
-      "fix": "Removed trailing comma after the 'age' value."
-    }
-  ]
+  "json": "{\"name\":\"Alice\",\"age\":30}",
+  "method": "local",
+  "changes": [
+    "converted single quotes to double quotes",
+    "added double quotes around unquoted keys",
+    "removed trailing comma(s) before closing bracket or brace"
+  ],
+  "response_truncated": false
 }
 ```
+
+`method` is `"local"` when the repair needed no model call, `"llm"` otherwise.
+`response_truncated` is `true` only when a model reply was cut at its token
+limit, in which case `json` may be missing its tail.
 
 ## Flags
 

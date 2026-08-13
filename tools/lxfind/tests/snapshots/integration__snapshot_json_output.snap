@@ -1,6 +1,5 @@
 ---
 source: tools/lxfind/tests/integration.rs
-assertion_line: 136
 expression: "serde_json::to_string_pretty(&out).unwrap()"
 ---
 {
@@ -8,5 +7,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
     "src/backup.sh",
     "scripts/db_dump.sh"
   ],
-  "truncated": false
+  "truncated": false,
+  "response_truncated": false
 }

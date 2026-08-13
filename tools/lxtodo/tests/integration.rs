@@ -147,6 +147,7 @@ fn todos_with_file_and_line_render_correctly() {
                 text: "FIXME: no location".to_string(),
             },
         ],
+        response_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("src/lib.rs:7: TODO: refactor"));

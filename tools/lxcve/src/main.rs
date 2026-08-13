@@ -163,6 +163,16 @@ fn main() {
 
     match run::run(&input, &config, client.as_ref()) {
         Ok(output) => {
+            // Tier 2, not narration: a short vulnerability list reads as "you
+            // are safe", so this must stay visible when stdout is piped.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "this assessment is INCOMPLETE: the model's reply hit its token \
+                     limit mid-answer, so only the findings it had already written \
+                     were kept — further vulnerabilities may exist that are NOT listed. \
+                     Check a shorter dependency list and re-run.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

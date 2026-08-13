@@ -233,6 +233,16 @@ fn main() {
                      log lines were never seen. Raise --max-input-bytes and re-run.",
                 );
             }
+            // Neither of the above: the whole log was sampled, but the model's
+            // reply itself stopped early.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "this analysis is INCOMPLETE: the model's reply hit its token limit \
+                     mid-answer, so only the anomalies it had already written were kept. \
+                     These are the ones it reported FIRST, not the most severe. \
+                     Analyse a narrower slice of the log and re-run.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

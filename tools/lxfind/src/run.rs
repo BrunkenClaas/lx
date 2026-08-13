@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
@@ -36,6 +36,14 @@ pub struct Output {
     /// `#[serde(default)]`.
     #[serde(default)]
     pub truncated: bool,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived — distinct from `truncated` above, which is *our*
+    /// deliberate cap on a complete answer. Here the answer itself is short:
+    /// these are the paths the model listed **first**, not its best ones. Set
+    /// locally from the provider's stop reason and the parser's salvage signal,
+    /// never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -265,6 +273,7 @@ pub fn run(
         return Ok(Output {
             paths: vec![],
             truncated: false,
+            response_truncated: false,
         });
     }
 
@@ -293,7 +302,11 @@ pub fn run(
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    let mut output: Output = parse_response(&resp.content)?;
+    let (mut output, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    output.response_truncated =
+        completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
 
     // fsbound validation: reject any returned path that, when resolved against
     // the root, escapes the allowed tree.
@@ -343,6 +356,7 @@ mod tests {
         let out = Output {
             paths: vec![],
             truncated: false,
+            response_truncated: false,
         };
         assert_eq!(out.to_plain(), "");
     }
@@ -352,6 +366,7 @@ mod tests {
         let out = Output {
             paths: vec!["src/main.rs".to_string()],
             truncated: false,
+            response_truncated: false,
         };
         assert_eq!(out.to_plain(), "src/main.rs\n");
     }
@@ -361,6 +376,7 @@ mod tests {
         let out = Output {
             paths: vec!["a.rs".to_string(), "b.rs".to_string()],
             truncated: false,
+            response_truncated: false,
         };
         assert_eq!(out.to_plain(), "a.rs\nb.rs\n");
     }

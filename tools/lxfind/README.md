@@ -57,7 +57,8 @@ scripts/db_dump.sh
     "src/backup.sh",
     "scripts/db_dump.sh"
   ],
-  "truncated": false
+  "truncated": false,
+  "response_truncated": false
 }
 ```
 

@@ -79,6 +79,7 @@ fn to_plain_with_vuln() {
             description: "Infinite loop in BN_mod_sqrt().".to_string(),
             confidence: "high".to_string(),
         }],
+        response_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("[HIGH]"), "expected [HIGH] in: {}", plain);
@@ -96,7 +97,10 @@ fn to_plain_with_vuln() {
 
 #[test]
 fn to_plain_no_vulns() {
-    let out = Output { vulns: vec![] };
+    let out = Output {
+        vulns: vec![],
+        response_truncated: false,
+    };
     let plain = out.to_plain();
     assert!(
         plain.contains("No known CVEs"),
@@ -116,6 +120,7 @@ fn to_plain_unknown_cve_id() {
             description: "Unvalidated input can cause a crash.".to_string(),
             confidence: "low".to_string(),
         }],
+        response_truncated: false,
     };
     let plain = out.to_plain();
     assert!(

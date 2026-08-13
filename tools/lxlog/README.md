@@ -45,7 +45,8 @@ $ lxlog --file app.log --json
     }
   ],
   "summary": "Critical resource issue: repeated connection pool exhaustion combined with high memory usage suggests the database has been unreachable since 14:23.",
-  "input_truncated": false
+  "input_truncated": false,
+  "response_truncated": false
 }
 ```
 

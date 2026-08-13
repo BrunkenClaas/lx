@@ -120,6 +120,7 @@ fn snapshot_plain_output() {
             "scripts/db_dump.sh".to_string(),
         ],
         truncated: false,
+        response_truncated: false,
     };
     insta::assert_snapshot!(out.to_plain());
 }
@@ -132,6 +133,7 @@ fn snapshot_json_output() {
             "scripts/db_dump.sh".to_string(),
         ],
         truncated: false,
+        response_truncated: false,
     };
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
 }
@@ -141,6 +143,7 @@ fn to_plain_is_pipe_safe() {
     let out = Output {
         paths: vec!["a/b.rs".to_string(), "c/d.py".to_string()],
         truncated: false,
+        response_truncated: false,
     };
     let plain = out.to_plain();
     for line in plain.lines() {

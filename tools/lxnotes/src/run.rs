@@ -1,6 +1,6 @@
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
@@ -32,6 +32,13 @@ pub struct Output {
     /// delegated to the LLM, hence `#[serde(default)]`.
     #[serde(default)]
     pub input_truncated: bool,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived — distinct from `input_truncated` above: the whole
+    /// source was read, but the answer stopped early, so later sections are
+    /// missing. Set locally from the provider's stop reason and the parser's
+    /// salvage signal, never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -72,6 +79,13 @@ pub struct ActionsOutput {
     /// delegated to the LLM, hence `#[serde(default)]`.
     #[serde(default)]
     pub input_truncated: bool,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived — distinct from `input_truncated` above: the whole
+    /// source was read, but the answer stopped early, so later action items are
+    /// missing. Set locally from the provider's stop reason and the parser's
+    /// salvage signal, never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl ActionsOutput {
@@ -139,7 +153,11 @@ pub fn run_actions(
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    Ok((parse_response::<ActionsOutput>(&resp.content)?, warnings))
+    let (mut out, completeness) = parse_response_checked::<ActionsOutput>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
+    Ok((out, warnings))
 }
 
 /// Core logic for lxnotes — structures raw meeting notes into sections.
@@ -173,7 +191,10 @@ pub fn run(
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    let out = parse_response::<Output>(&resp.content)?;
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
 
     if out.sections.is_empty() {
         return Err(LxError::LogicalError(

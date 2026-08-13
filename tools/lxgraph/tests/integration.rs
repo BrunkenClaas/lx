@@ -176,6 +176,7 @@ fn to_plain_returns_chart() {
     let out = Output {
         chart: "A | ████ 100".to_string(),
         series: vec!["A".to_string()],
+        response_truncated: false,
     };
     assert_eq!(out.to_plain(), "A | ████ 100");
 }

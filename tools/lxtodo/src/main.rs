@@ -157,6 +157,8 @@ fn main() {
                     text,
                 })
                 .collect(),
+            // --no-net path: purely local scan, no LLM call to cut short.
+            response_truncated: false,
         };
         if cli.json {
             println!("{}", serde_json::to_string_pretty(&output).unwrap());
@@ -176,6 +178,16 @@ fn main() {
 
     match run::run(&input, &config, client.as_ref()) {
         Ok(output) => {
+            // Tier 2, not narration: a silently short TODO list is worst when
+            // piped onward, which is exactly where narration is hidden.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "this list is INCOMPLETE: the model's reply hit its token limit \
+                     mid-answer, so only the items it had already written were kept. \
+                     These are the ones it found FIRST, not all of them. \
+                     Scan a smaller input and re-run.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

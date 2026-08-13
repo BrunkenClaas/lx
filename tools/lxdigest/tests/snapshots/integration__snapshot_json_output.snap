@@ -7,5 +7,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
   "files": [
     "src/main.rs",
     "Cargo.toml"
-  ]
+  ],
+  "response_truncated": false
 }

@@ -133,6 +133,15 @@ fn main() {
             for w in &warnings {
                 lx_core::output::warn(w);
             }
+            // The chart is rendered locally and is complete; only the labels
+            // come from the model, so say precisely that.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "series labels are INCOMPLETE: the model's reply hit its token \
+                     limit mid-answer, so later series fall back to generic labels. \
+                     The chart data itself is complete.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {
