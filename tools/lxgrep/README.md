@@ -56,7 +56,8 @@ src/db.rs:7:    fn connect(host: &str, port: u16) -> Result<Conn, Error> {
     { "file": "src/main.rs", "line": 14, "snippet": "    Err(e) => eprintln!(\"error: {e}\")," }
   ],
   "capped": false,
-  "input_truncated": false
+  "input_truncated": false,
+  "response_truncated": false
 }
 ```
 
@@ -78,6 +79,11 @@ content fits into that one call:
    relevant — never that local code decided not to ask.
 4. When the budget was exceeded, the JSON output's `capped` field is `true`
    and a warning is printed to stderr (suppressed by `--quiet`).
+5. When the model's own reply was cut at its token limit, `response_truncated`
+   is `true` and a distinct warning fires. The matches you get back are then the
+   ones the model listed **first**, not its best ones — the rest were never
+   written. This is a separate fact from `capped`: the whole input was searched,
+   but the answer was cut short.
 
 ## Flags
 

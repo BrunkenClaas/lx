@@ -18,5 +18,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
     }
   ],
   "content": "",
-  "input_truncated": false
+  "input_truncated": false,
+  "response_truncated": false
 }

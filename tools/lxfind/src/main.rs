@@ -141,6 +141,17 @@ fn main() {
 
     match run::run(&description, &cli.path, &config, client.as_ref()) {
         Ok(output) => {
+            // Tier 2, not narration: unlike `truncated` (our deliberate cap on a
+            // complete answer) this means the answer itself was cut short, so it
+            // must stay visible when stdout is piped.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "results are INCOMPLETE: the model's reply hit its token limit \
+                     mid-answer, so only the paths it had already written were kept. \
+                     These are the ones it listed FIRST, not its best matches. \
+                     Narrow your description and re-run.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

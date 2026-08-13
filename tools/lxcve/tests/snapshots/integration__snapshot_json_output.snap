@@ -12,5 +12,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
       "description": "Infinite loop in BN_mod_sqrt() reachable when parsing certificates with invalid explicit elliptic curve parameters.",
       "confidence": "low"
     }
-  ]
+  ],
+  "response_truncated": false
 }

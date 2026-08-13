@@ -133,6 +133,16 @@ fn main() {
 
     match run::run(&input, &config, client.as_ref()) {
         Ok(output) => {
+            // Tier 2, not narration: a table silently missing its later rows is
+            // exactly the case where a partial answer does the most damage, and
+            // narration is hidden as soon as stdout is piped.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "this table is INCOMPLETE: the model's reply hit its token limit \
+                     mid-answer, so only the rows it had already written are shown. \
+                     Convert a smaller input and re-run.",
+                );
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

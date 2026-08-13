@@ -19,5 +19,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
       "25",
       "Designer"
     ]
-  ]
+  ],
+  "response_truncated": false
 }

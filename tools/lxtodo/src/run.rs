@@ -1,6 +1,6 @@
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
@@ -33,6 +33,12 @@ pub struct TodoItem {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Output {
     pub todos: Vec<TodoItem>,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived, so these are the items it wrote **first**, not
+    /// everything it found. Set locally from the provider's stop reason and the
+    /// parser's salvage signal, never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -113,7 +119,11 @@ fn strip_comment_prefix(line: &str) -> &str {
 ///    implicit action items, etc.).
 pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Output, LxError> {
     if input.trim().is_empty() {
-        return Ok(Output { todos: vec![] });
+        return Ok(Output {
+            todos: vec![],
+            // No call was made, so nothing could be cut short.
+            response_truncated: false,
+        });
     }
 
     // Local scan: extract line numbers and candidate text.
@@ -147,7 +157,11 @@ pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Outpu
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    parse_response::<Output>(&resp.content)
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
+    Ok(out)
 }
 
 // ── Unit tests ────────────────────────────────────────────────────────────────
@@ -191,6 +205,7 @@ mod tests {
                 line: Some(42),
                 text: "TODO: fix this".to_string(),
             }],
+            response_truncated: false,
         };
         let plain = out.to_plain();
         assert_eq!(plain.trim(), "src/main.rs:42: TODO: fix this");
@@ -204,13 +219,17 @@ mod tests {
                 line: None,
                 text: "FIXME: broken".to_string(),
             }],
+            response_truncated: false,
         };
         assert_eq!(out.to_plain().trim(), "FIXME: broken");
     }
 
     #[test]
     fn to_plain_empty_todos_returns_empty() {
-        let out = Output { todos: vec![] };
+        let out = Output {
+            todos: vec![],
+            response_truncated: false,
+        };
         assert_eq!(out.to_plain(), String::new());
     }
 

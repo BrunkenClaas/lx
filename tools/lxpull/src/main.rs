@@ -225,6 +225,16 @@ fn main() {
                      later records were never seen. Raise --max-input-bytes and re-run.",
                 );
             }
+            // Neither of the above: the whole input was read and our cap was not
+            // reached — the model's reply itself stopped early.
+            if output.response_truncated {
+                lx_core::output::warn(
+                    "results are INCOMPLETE: the model's reply hit its token limit \
+                     mid-answer, so only the records it had already written were kept. \
+                     These are the ones it extracted FIRST, not all it found. \
+                     Extract fewer fields, or split the input, and re-run.",
+                );
+            }
             process::exit(exit::SUCCESS);
         }
         Err(e) => {

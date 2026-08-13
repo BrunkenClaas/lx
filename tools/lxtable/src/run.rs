@@ -1,6 +1,6 @@
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
@@ -11,6 +11,14 @@ const MAX_TOKENS: u32 = 2048;
 pub struct Output {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<String>>,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived, so the table is missing its later rows. Here the
+    /// prefix *is* the right selection — rows are order-significant — but the
+    /// table is still incomplete. Set locally from the provider's stop reason
+    /// and the parser's salvage signal, never from the model, hence
+    /// `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -102,5 +110,9 @@ pub fn run(input: &str, config: &Config, client: &dyn LlmClient) -> Result<Outpu
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    parse_response::<Output>(&resp.content)
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
+    Ok(out)
 }

@@ -11,5 +11,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
     }
   ],
   "capped": false,
-  "input_truncated": false
+  "input_truncated": false,
+  "response_truncated": false
 }

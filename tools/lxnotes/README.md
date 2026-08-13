@@ -61,7 +61,8 @@ $ lxnotes --file kickoff.txt --json
       ]
     }
   ],
-  "input_truncated": false
+  "input_truncated": false,
+  "response_truncated": false
 }
 ```
 

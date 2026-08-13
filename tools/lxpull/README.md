@@ -35,7 +35,8 @@ $ lxpull --fields people,dates,places --json < article.md
     { "people": "Carol Osei", "dates": "", "places": "Accra" }
   ],
   "truncated": false,
-  "input_truncated": false
+  "input_truncated": false,
+  "response_truncated": false
 }
 ```
 

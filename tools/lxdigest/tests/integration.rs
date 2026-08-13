@@ -86,6 +86,7 @@ fn snapshot_plain_output() {
     let out = Output {
         summary: "A Rust library crate with integration tests and documentation.".to_string(),
         files: vec!["src/main.rs".to_string(), "Cargo.toml".to_string()],
+        response_truncated: false,
     };
     insta::assert_snapshot!(out.to_plain());
 }
@@ -95,6 +96,7 @@ fn snapshot_json_output() {
     let out = Output {
         summary: "A Rust library crate with integration tests and documentation.".to_string(),
         files: vec!["src/main.rs".to_string(), "Cargo.toml".to_string()],
+        response_truncated: false,
     };
     insta::assert_snapshot!(serde_json::to_string_pretty(&out).unwrap());
 }
@@ -104,6 +106,7 @@ fn to_plain_is_pipe_safe() {
     let out = Output {
         summary: "A Rust project with source files and tests.".to_string(),
         files: vec!["src/main.rs".to_string()],
+        response_truncated: false,
     };
     let plain = out.to_plain();
     for line in plain.lines() {

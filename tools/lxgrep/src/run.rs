@@ -2,7 +2,7 @@
 
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -58,6 +58,14 @@ pub struct Output {
     /// from the reader, hence `#[serde(default)]`.
     #[serde(default)]
     pub input_truncated: bool,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived — a third distinct fact from the two above, whose
+    /// input was fine. The matches below are then the ones the model wrote
+    /// **first**, not its best: for a ranked list that is close to a worst-case
+    /// subset. Set locally from the provider's stop reason and the parser's
+    /// salvage signal, never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -644,6 +652,8 @@ fn complete_with_blocks(
             capped,
             // Input truncation is an I/O fact main.rs knows and run() does not.
             input_truncated: false,
+            // No call was made, so nothing could be cut short.
+            response_truncated: false,
         });
     }
 
@@ -660,8 +670,12 @@ fn complete_with_blocks(
     };
 
     let resp = client.complete(&req).map_err(LxError::from)?;
-    let mut out: Output = parse_response(&resp.content)?;
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
     out.capped = capped;
+    // Two signals, because neither alone is sufficient: salvage misses a reply
+    // cut on a token boundary that still parses, and not every provider reports
+    // a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
     Ok(out)
 }
 
@@ -794,6 +808,7 @@ mod tests {
             }],
             capped: false,
             input_truncated: false,
+            response_truncated: false,
         };
         let plain = out.to_plain();
         assert_eq!(

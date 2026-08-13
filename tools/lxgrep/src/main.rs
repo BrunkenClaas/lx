@@ -237,6 +237,17 @@ fn main() {
              --max-input-bytes and re-run.",
         );
     }
+    // Distinct from both: the whole input was searched, but the model's reply
+    // was cut mid-answer. Deliberately does NOT say "raise the limit" — the cut
+    // can happen below the tool's own cap, which is a compile-time constant.
+    if output.response_truncated {
+        lx_core::output::warn(
+            "results are INCOMPLETE: the model's reply hit its token limit \
+             mid-answer, so only the matches it had already written were kept. \
+             These are the ones it listed FIRST, not its best matches — later \
+             ones are missing. Narrow the query and re-run.",
+        );
+    }
 
     if cli.json {
         println!("{}", serde_json::to_string_pretty(&output).unwrap());

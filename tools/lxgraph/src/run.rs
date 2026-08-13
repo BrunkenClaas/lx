@@ -1,6 +1,6 @@
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use serde::{Deserialize, Serialize};
 
 pub const SYSTEM_TEMPLATE: &str = include_str!("../prompts/system.txt");
@@ -40,6 +40,14 @@ pub struct Output {
     pub chart: String,
     /// Series labels suggested by the LLM.
     pub series: Vec<String>,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived. The chart itself is rendered locally from the
+    /// parsed data and is complete — but the model supplies the series labels,
+    /// so a short list leaves later series unlabelled. Set locally from the
+    /// provider's stop reason and the parser's salvage signal, never from the
+    /// model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -242,7 +250,7 @@ pub fn run(
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    let llm_out = parse_response::<LlmOutput>(&resp.content)?;
+    let (llm_out, completeness) = parse_response_checked::<LlmOutput>(&resp.content)?;
 
     // Render chart locally using parsed data + LLM labels.
     let chart = render_bar_chart(&points, &llm_out.series);
@@ -251,6 +259,10 @@ pub fn run(
         Output {
             chart,
             series: llm_out.series,
+            // Two signals: salvage misses a reply cut on a token boundary that
+            // still parses, and not every provider reports a stop reason.
+            response_truncated: completeness.is_salvaged()
+                || resp.stop_reason == StopReason::Length,
         },
         warnings,
     ))

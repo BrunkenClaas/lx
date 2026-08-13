@@ -46,7 +46,8 @@ Notable files are listed on stderr (suppressed by `--quiet`).
 ```json
 {
   "summary": "High-level description of the directory.",
-  "files": ["src/main.rs", "Cargo.toml"]
+  "files": ["src/main.rs", "Cargo.toml"],
+  "response_truncated": false
 }
 ```
 

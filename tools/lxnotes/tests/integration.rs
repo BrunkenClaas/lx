@@ -91,6 +91,7 @@ fn to_plain_formats_sections_correctly() {
             },
         ],
         input_truncated: false,
+        response_truncated: false,
     };
     let plain = out.to_plain();
     assert!(plain.contains("## Decisions"));

@@ -34,7 +34,8 @@ $ echo "Alice: PM, Bob: Dev Lead, Carol: QA" | lxtable --json
     ["Alice", "PM"],
     ["Bob", "Dev Lead"],
     ["Carol", "QA"]
-  ]
+  ],
+  "response_truncated": false
 }
 ```
 

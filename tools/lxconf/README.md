@@ -49,7 +49,8 @@ JSON mode (`--json`):
       "hint": "Use a port number between 1 and 65535"
     }
   ],
-  "input_truncated": false
+  "input_truncated": false,
+  "response_truncated": false
 }
 ```
 

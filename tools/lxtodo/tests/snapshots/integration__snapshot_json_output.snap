@@ -12,5 +12,6 @@ expression: "serde_json::to_string_pretty(&out).unwrap()"
     {
       "text": "FIXME: broken on empty input"
     }
-  ]
+  ],
+  "response_truncated": false
 }

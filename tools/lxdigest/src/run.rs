@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use lx_redact::RedactLevel;
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +27,12 @@ const MAX_LISTING_BYTES: usize = 32_000;
 pub struct Output {
     pub summary: String,
     pub files: Vec<String>,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived, so the file list may be short and the summary may
+    /// stop mid-sentence. Set locally from the provider's stop reason and the
+    /// parser's salvage signal, never from the model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -206,7 +212,10 @@ pub fn run(
 
     let resp = client.complete(&req).map_err(LxError::from)?;
 
-    let out: Output = parse_response(&resp.content)?;
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
 
     if out.summary.is_empty() {
         return Err(LxError::LogicalError(
@@ -242,6 +251,8 @@ pub fn run(
         Output {
             summary: out.summary,
             files,
+            // Carry the fact forward: the fsbound filter rebuilds the struct.
+            response_truncated: out.response_truncated,
         },
         warnings,
     ))
@@ -258,6 +269,7 @@ mod tests {
         let out = Output {
             summary: "A Rust project.".to_string(),
             files: vec!["src/main.rs".to_string()],
+            response_truncated: false,
         };
         assert_eq!(out.to_plain(), "A Rust project.");
     }
@@ -267,6 +279,7 @@ mod tests {
         let out = Output {
             summary: "Empty directory.".to_string(),
             files: vec![],
+            response_truncated: false,
         };
         assert_eq!(out.to_plain(), "Empty directory.");
     }

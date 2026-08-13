@@ -286,6 +286,7 @@ fn to_plain_is_grep_compatible() {
         }],
         capped: false,
         input_truncated: false,
+        response_truncated: false,
     };
     let plain = out.to_plain();
     // grep-compatible format: file:line: snippet
@@ -348,4 +349,101 @@ fn capped_is_false_on_small_input_and_true_on_genuinely_capped_input() {
     let big: String = (0..20_000).map(|i| format!("./src/mod{i}.rs\n")).collect();
     let out = lxgrep::run::run("build related stuff", &[("<stdin>", &big)], &cfg, &client).unwrap();
     assert!(out.capped, "20k lines against a 400-line budget IS capped");
+}
+
+// ── Response truncation ──────────────────────────────────────────────────────
+
+#[test]
+fn truncated_response_sets_response_truncated() {
+    // The model was cut mid-array: two complete matches, third half-written.
+    // Salvage keeps the complete prefix and the flag must say so.
+    let client = MockLlmClient::returning(
+        r#"{"matches":[{"file":"a.rs","line":1,"snippet":"x"},{"file":"b.rs","line":2,"snippet":"y"},{"file":"c.rs","line":3,"snip"#,
+    );
+    let out = run(
+        "query",
+        &[("<stdin>", "some content\n")],
+        &Config::default(),
+        &client,
+    )
+    .unwrap();
+
+    assert_eq!(out.matches.len(), 2, "keeps the two complete matches");
+    assert!(
+        out.response_truncated,
+        "a salvaged reply must be reported as truncated"
+    );
+}
+
+#[test]
+fn length_stop_without_mid_json_cut_still_flags() {
+    // The case JSON-only detection misses entirely: the provider cut at the
+    // token cap, but the reply happens to end on a token boundary that still
+    // parses. Only the stop reason reveals it.
+    let client =
+        MockLlmClient::returning(r#"{"matches":[{"file":"a.rs","line":1,"snippet":"x"}]}"#)
+            .with_stop_reason(lx_llm::StopReason::Length);
+    let out = run(
+        "query",
+        &[("<stdin>", "some content\n")],
+        &Config::default(),
+        &client,
+    )
+    .unwrap();
+
+    assert_eq!(out.matches.len(), 1, "the JSON itself parsed cleanly");
+    assert!(
+        out.response_truncated,
+        "a provider length-stop must be reported even when the JSON parses"
+    );
+}
+
+#[test]
+fn complete_response_does_not_flag() {
+    let client = MockLlmClient::returning(mock_response());
+    let out = run(
+        "query",
+        &[("<stdin>", "some content\n")],
+        &Config::default(),
+        &client,
+    )
+    .unwrap();
+    assert!(!out.response_truncated, "a clean reply must not warn");
+}
+
+#[test]
+fn response_truncated_is_independent_of_capped() {
+    // Separate facts, separate flags: a tiny input cannot be `capped`, but its
+    // reply can still be cut short.
+    let client = MockLlmClient::returning(
+        r#"{"matches":[{"file":"a.rs","line":1,"snippet":"x"},{"file":"b.rs","line":2,"snip"#,
+    );
+    let out = run(
+        "query",
+        &[("<stdin>", "one line\n")],
+        &Config::default(),
+        &client,
+    )
+    .unwrap();
+
+    assert!(out.response_truncated, "the reply was cut");
+    assert!(!out.capped, "a one-line input is nowhere near the budget");
+    assert!(!out.input_truncated, "nothing truncated the input");
+}
+
+#[test]
+fn response_truncated_is_serialized_in_json() {
+    let client = MockLlmClient::returning(mock_response());
+    let out = run(
+        "query",
+        &[("<stdin>", "some content\n")],
+        &Config::default(),
+        &client,
+    )
+    .unwrap();
+    let v = serde_json::to_value(&out).unwrap();
+    assert!(
+        v.get("response_truncated").is_some(),
+        "the --json contract must expose the flag: {v}"
+    );
 }

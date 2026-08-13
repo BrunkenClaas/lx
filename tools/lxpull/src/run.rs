@@ -1,6 +1,6 @@
 use lx_config::Config;
 use lx_core::error::LxError;
-use lx_llm::{inject_lang, parse_response, LlmClient, Request};
+use lx_llm::{inject_lang, parse_response_checked, LlmClient, Request, StopReason};
 use lx_redact::{redact, RedactLevel};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -43,6 +43,15 @@ pub struct Output {
     /// from the reader, hence `#[serde(default)]`.
     #[serde(default)]
     pub input_truncated: bool,
+    /// True when the model's own reply was cut at the token cap and only the
+    /// valid prefix survived — the third distinct fact here. `truncated` is
+    /// *our* cap on a complete answer and `input_truncated` is a short input;
+    /// this one means the answer itself stopped early, so these are the records
+    /// the model wrote **first**, not all it found. Set locally from the
+    /// provider's stop reason and the parser's salvage signal, never from the
+    /// model, hence `#[serde(default)]`.
+    #[serde(default)]
+    pub response_truncated: bool,
 }
 
 impl Output {
@@ -181,7 +190,10 @@ fn send_to_llm(
         .complete(&req)
         .map_err(lx_core::error::LxError::from)?;
 
-    let mut out = parse_response::<Output>(&resp.content)?;
+    let (mut out, completeness) = parse_response_checked::<Output>(&resp.content)?;
+    // Two signals: salvage misses a reply cut on a token boundary that still
+    // parses, and not every provider reports a stop reason.
+    out.response_truncated = completeness.is_salvaged() || resp.stop_reason == StopReason::Length;
 
     // Hard cap on the record set to keep the response within the token budget
     // regardless of how many entities the input contained.

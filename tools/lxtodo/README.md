@@ -45,7 +45,8 @@ lxtodo --lang de --file src/main.rs
   "todos": [
     { "file": "src/main.rs", "line": 42, "text": "TODO: fix this" },
     { "text": "FIXME: no location" }
-  ]
+  ],
+  "response_truncated": false
 }
 ```
 

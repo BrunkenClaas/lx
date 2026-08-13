@@ -301,6 +301,24 @@ fn main() {
             }
             // The reader already warned on stderr; carry the fact into --json.
             output.input_truncated = input_truncated;
+            // Distinct from input truncation: the whole source was read, but the
+            // model's own reply stopped early. A half-written config is far worse
+            // than a short finding list, so say which one happened.
+            if output.response_truncated {
+                lx_core::output::warn(match mode {
+                    run::ConfigMode::Audit => {
+                        "this audit is INCOMPLETE: the model's reply hit its token limit \
+                         mid-answer, so only the findings it had already written were \
+                         kept — further issues may exist that are NOT listed. \
+                         Audit a smaller config and re-run."
+                    }
+                    _ => {
+                        "DO NOT USE this config: the model's reply hit its token limit \
+                         mid-answer, so the output stops part-way through the file. \
+                         Request a smaller change and re-run."
+                    }
+                });
+            }
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&output).unwrap());
             } else {

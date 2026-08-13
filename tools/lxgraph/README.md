@@ -56,7 +56,8 @@ JSON mode (`--json`):
 ```json
 {
   "chart": "Sales Q1 | ████████████░░░░░░░░  1200\n...",
-  "series": ["Sales Q1", "Sales Q2", "Sales Q3", "Sales Q4"]
+  "series": ["Sales Q1", "Sales Q2", "Sales Q3", "Sales Q4"],
+  "response_truncated": false
 }
 ```
 

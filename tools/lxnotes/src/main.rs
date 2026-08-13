@@ -174,6 +174,15 @@ fn main() {
                 }
                 // run() is pure and never sees the reader; main.rs carries the fact.
                 output.input_truncated = raw_input.truncated;
+                // Distinct from input truncation: the whole source was read, but
+                // the model's own reply stopped early.
+                if output.response_truncated {
+                    lx_core::output::warn(
+                        "this list is INCOMPLETE: the model's reply hit its token limit \
+                         mid-answer, so only the action items it had already written \
+                         were kept. Process shorter notes and re-run.",
+                    );
+                }
                 if cli.json {
                     println!("{}", serde_json::to_string_pretty(&output).unwrap());
                 } else {
@@ -195,6 +204,15 @@ fn main() {
                 }
                 // run() is pure and never sees the reader; main.rs carries the fact.
                 output.input_truncated = raw_input.truncated;
+                // Distinct from input truncation: the whole source was read, but
+                // the model's own reply stopped early.
+                if output.response_truncated {
+                    lx_core::output::warn(
+                        "these notes are INCOMPLETE: the model's reply hit its token \
+                         limit mid-answer, so only the sections it had already written \
+                         were kept. Process shorter notes and re-run.",
+                    );
+                }
                 if cli.json {
                     println!("{}", serde_json::to_string_pretty(&output).unwrap());
                 } else {
