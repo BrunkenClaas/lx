@@ -6,6 +6,17 @@ Versioning: each tool has independent versions; the suite release label is `YYYY
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-12
+
+> **Upgrading?** Config files are never rewritten, so an existing
+> `~/.config/lx/config.toml` (`%APPDATA%\lx\config.toml` on Windows) keeps the
+> values it was created with — including defaults that have since changed. If
+> yours predates 1.1.0, `limits.max_input_bytes` is likely still 512 KiB
+> (now 2 MiB) and `limits.max_output_tokens` still 1024 (now 4096), which caps
+> replies far shorter than the tools expect. Compare against
+> `crates/lx-config/config.example.toml` and delete any line you did not set
+> deliberately — every missing key falls back to the current default.
+
 ### Added
 
 - **`response_truncated` in `--json` on the twelve tools whose result is a list.**

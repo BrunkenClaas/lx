@@ -1,6 +1,6 @@
 [package]
 name = "lx-llm"
-version = "1.1.1-dev"
+version = "1.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "LLM transport layer for LX Coreutils (OpenAI-compatible + Anthropic native)"
