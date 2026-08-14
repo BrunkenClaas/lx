@@ -1,6 +1,6 @@
 [package]
 name = "lxsed"
-version = "1.1.1-dev"
+version = "1.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Generate a sed or awk text-transformation one-liner"

@@ -10,7 +10,7 @@
 
     Options (as environment variables, set before running):
       $env:LX_INSTALL_DIR   install location (default: %USERPROFILE%\bin)
-      $env:LX_VERSION       version to install, e.g. 1.1.0 (default: latest release)
+      $env:LX_VERSION       version to install, e.g. 1.2.0 (default: latest release)
 #>
 
 $ErrorActionPreference = 'Stop'

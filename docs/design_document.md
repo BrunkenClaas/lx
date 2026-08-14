@@ -1,6 +1,6 @@
 # LX Coreutils — Design Document
 
-**Status:** Living document · **Last reviewed:** 2026-08-11 · **Audience:** maintainers and contributors
+**Status:** Living document · **Last reviewed:** 2026-08-12 · **Audience:** maintainers and contributors
 
 LX Coreutils is a collection of **72 small, fast, LLM-powered command-line tools**
 for Linux and Windows. Each tool does exactly one thing, starts in single-digit
@@ -1868,6 +1868,7 @@ A new tool follows the same shape as every existing one. The rhythm:
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-08-12 | Released 1.2.0 (all crates 1.1.1-dev→1.2.0; suite label stays `2026-08`, unchanged since 1.1.0 — the trigger is the minor bump and this is still the same month). Minor rather than patch because twelve tools gained a `--json` field (`response_truncated`), the same class of user-observable change that made 1.1.0 minor. Verification pass ("Last reviewed" bumped): confirmed all eleven applicable per-tool README JSON examples carry the new field (`lxcve` has no JSON block), the 72-tools-plus-`lx` count, the 79-crate count, and the `(Output, Vec<String>)` `run()` contract in §3.4/§14 — no drift found, the §4 and §7.5 entries having been refreshed in the same cycle. | BrunkenClaas |
 | 2026-08-11 | §7.5: added `response_truncated` as a third, distinct incompleteness fact (the model's *reply* was cut, not its input) with the two-signal detection rule — the parser's salvage flag plus the provider's stop reason, since neither alone is sufficient: salvage misses a cut on a token boundary that still parses, and not every provider reports a stop reason. Documents that salvaged elements are a **prefix, not a selection** and why the selection is nonetheless left alone (nothing at the `Value` layer distinguishes a ranked list from an order-significant one). §4: `schema` gains the `_checked` siblings and no longer "emits a one-line stderr warning" — the library now prints nothing, because it runs inside `run()`. Removes the only unconditional `eprintln!` in `lx-llm`, which bypassed `--quiet` and prescribed raising a cap that is a compile-time constant. | BrunkenClaas |
 | 2026-08-10 | §7.5: documented the two forms of the `capped` flag (size test vs coverage test) and the precondition the coverage form imposes — a stepping sampler must anchor on the final line or it reports a full input as incomplete. Records that `lxlog`'s fill step has the same tail-miss but is harmless under its size test, so converting it needs the walk fixed first. | BrunkenClaas |
 | 2026-08-09 | Added `.github/release.yml` so the auto-generated release notes exclude PRs labelled `no-release-note`; release ritual step 1 now says to apply that label to the release PR, which otherwise appears in the *next* release's notes. Deliberately filter-only (no `categories:`) — `CHANGELOG.md` stays the authoritative history. | BrunkenClaas |
